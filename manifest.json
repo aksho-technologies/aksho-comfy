@@ -14,7 +14,8 @@
       "url": "https://dl.akshoai.com/comfyui/comfyui-portable.zip",
       "targetPath": ".",
       "sha256": "",
-      "sizeBytes": 0
+      "sizeBytes": 0,
+      "sourceVersion": "v0.28.0"
     },
     {
       "id": "ext-ipadapter-plus",
@@ -23,7 +24,10 @@
       "targetPath": "ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus",
       "sha256": "",
       "sizeBytes": 0,
-      "postInstall": { "pipRequirements": "requirements.txt" }
+      "postInstall": {
+        "pipRequirements": "requirements.txt"
+      },
+      "pinnedCommit": "a0f451a5113c"
     },
     {
       "id": "ext-impact-pack",
@@ -32,7 +36,11 @@
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Pack",
       "sha256": "",
       "sizeBytes": 0,
-      "postInstall": { "pipRequirements": "requirements.txt", "runScript": "install.py" }
+      "postInstall": {
+        "pipRequirements": "requirements.txt",
+        "runScript": "install.py"
+      },
+      "pinnedCommit": "429d0159ad42"
     },
     {
       "id": "ext-impact-subpack",
@@ -41,7 +49,10 @@
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Subpack",
       "sha256": "",
       "sizeBytes": 0,
-      "postInstall": { "pipRequirements": "requirements.txt" }
+      "postInstall": {
+        "pipRequirements": "requirements.txt"
+      },
+      "pinnedCommit": "50c7b71a6a22"
     },
     {
       "id": "ext-ppm",
@@ -49,7 +60,8 @@
       "url": "https://dl.akshoai.com/extensions/ComfyUI-ppm.zip",
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-ppm",
       "sha256": "",
-      "sizeBytes": 0
+      "sizeBytes": 0,
+      "pinnedCommit": "cb4a46ba9b0e"
     },
     {
       "id": "model-checkpoint-dreamhex-v5",
