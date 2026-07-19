@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.07.19-1",
+  "bundleVersion": "2026.07.19-2",
   "installerVersion": "1.0.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 20,
@@ -106,10 +106,11 @@
     {
       "id": "model-upscale-4x-animesharp",
       "kind": "file",
-      "url": "https://dl.akshoai.com/models/4x-AnimeSharp.pth",
+      "url": "https://huggingface.co/Kim2091/AnimeSharp/resolve/main/4x-AnimeSharp.pth",
       "targetPath": "ComfyUI/models/upscale_models/4x-AnimeSharp.pth",
       "sha256": "e7a7de2dafd7331c1992862bbbcd9e9712a9f9f8e6303f0aaa59b4341d359bab",
-      "sizeBytes": 67010245
+      "sizeBytes": 67010245,
+      "source": "original upstream (not redistributed by Aksho, pending author permission)"
     },
     {
       "id": "model-adetailer-face",

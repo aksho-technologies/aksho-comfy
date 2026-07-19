@@ -15,6 +15,6 @@ The Aksho Comfy installer scripts in this repository are MIT licensed (see [LICE
 | OpenPose ControlNet (Illustrious) | [windsingai](https://huggingface.co/windsingai/Illustrious-XL-openpose-test) | Apache-2.0 | Clear |
 | Depth ControlNet | [Eugeoter / noob-sdxl-controlnet-depth](https://huggingface.co/Eugeoter/noob-sdxl-controlnet-depth) (identity confirmed by sha256) | [Fair AI Public License 1.0-SD](https://freedevproject.org/faipl-1.0-sd/) (share-alike; this notice passes the license along) | Clear under FAIPL itself; NoobAI base-model lineage carries an unsettled anti-commercial claim, flagged for legal review |
 | face_yolov9c / hand_yolov9c | [Bingsu/adetailer](https://huggingface.co/Bingsu/adetailer), Ultralytics YOLO | Contested (HF card Apache-2.0 vs Ultralytics AGPL-3.0 claim) | Not redistributed by Aksho: the installer downloads these two files directly from the original Bingsu/adetailer repository, the same source the A1111 ADetailer extension and ComfyUI Impact-Subpack use |
-| 4x-AnimeSharp | [Kim2091](https://huggingface.co/Kim2091/AnimeSharp) | CC BY-NC-SA 4.0 | PENDING: author permission requested per Kim2091's stated policy (private ask for commercial-entity use) |
+| 4x-AnimeSharp | [Kim2091](https://huggingface.co/Kim2091/AnimeSharp) | CC BY-NC-SA 4.0 | Not redistributed by Aksho: the installer downloads this file directly from the author's repository while permission for CDN hosting is requested per Kim2091's stated policy |
 
-The PENDING row must be resolved before the download bucket goes public.
+CDN hosting of 4x-AnimeSharp activates only after the author's permission arrives.
