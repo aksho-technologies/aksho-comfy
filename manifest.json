@@ -1,0 +1,127 @@
+{
+  "bundleVersion": "2026.07.19-1",
+  "installerVersion": "1.0.0",
+  "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
+  "minDiskSpaceGB": 20,
+  "requirements": {
+    "os": "Windows 10/11 64-bit",
+    "gpu": "NVIDIA"
+  },
+  "components": [
+    {
+      "id": "comfyui-portable",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/comfyui/comfyui-portable.zip",
+      "targetPath": ".",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "ext-ipadapter-plus",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI_IPAdapter_plus.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus",
+      "sha256": "",
+      "sizeBytes": 0,
+      "postInstall": { "pipRequirements": "requirements.txt" }
+    },
+    {
+      "id": "ext-impact-pack",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Impact-Pack.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Pack",
+      "sha256": "",
+      "sizeBytes": 0,
+      "postInstall": { "pipRequirements": "requirements.txt", "runScript": "install.py" }
+    },
+    {
+      "id": "ext-impact-subpack",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Impact-Subpack.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Subpack",
+      "sha256": "",
+      "sizeBytes": 0,
+      "postInstall": { "pipRequirements": "requirements.txt" }
+    },
+    {
+      "id": "ext-ppm",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-ppm.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-ppm",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-checkpoint-dreamhex-v5",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/veteDreamhexILL_v5.safetensors",
+      "targetPath": "ComfyUI/models/checkpoints/veteDreamhexILL_v5.safetensors",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-controlnet-openpose",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/controlnet-openpose-illustrious.safetensors",
+      "targetPath": "ComfyUI/models/controlnet/controlnet-openpose-illustrious.safetensors",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-controlnet-depth",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/controlnet-depth-illustrious.safetensors",
+      "targetPath": "ComfyUI/models/controlnet/controlnet-depth-illustrious.safetensors",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-clip-vision-vith",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "targetPath": "ComfyUI/models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-ipadapter-noob",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/ip_adapter_Noobtest_800000.bin",
+      "targetPath": "ComfyUI/models/ipadapter/ip_adapter_Noobtest_800000.bin",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-upscale-4x-animesharp",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/4x-AnimeSharp.pth",
+      "targetPath": "ComfyUI/models/upscale_models/4x-AnimeSharp.pth",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-adetailer-face",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/face_yolov9c.pt",
+      "targetPath": "ComfyUI/models/ultralytics/bbox/face_yolov9c.pt",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "model-adetailer-hand",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/hand_yolov9c.pt",
+      "targetPath": "ComfyUI/models/ultralytics/bbox/hand_yolov9c.pt",
+      "sha256": "",
+      "sizeBytes": 0
+    },
+    {
+      "id": "aksho-relay-agent",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/agent/aksho-relay-agent.zip",
+      "targetPath": ".",
+      "sha256": "",
+      "sizeBytes": 0
+    }
+  ]
+}

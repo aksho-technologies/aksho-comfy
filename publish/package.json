@@ -1,0 +1,11 @@
+{
+  "name": "aksho-comfy-publish",
+  "private": true,
+  "type": "module",
+  "description": "Admin publisher for the Aksho ComfyUI bundle (R2 uploads + manifest management)",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/lib-storage": "^3.600.0",
+    "dotenv": "^16.4.5"
+  }
+}

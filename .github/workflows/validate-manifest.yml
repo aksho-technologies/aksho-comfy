@@ -1,0 +1,39 @@
+name: validate-manifest
+
+on:
+  pull_request:
+    paths: ['manifest.json']
+  push:
+    branches: [main]
+    paths: ['manifest.json']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate manifest.json
+        run: |
+          node -e '
+            const m = JSON.parse(require("fs").readFileSync("manifest.json", "utf8"));
+            const fail = (msg) => { console.error("INVALID: " + msg); process.exit(1); };
+            if (!m.bundleVersion) fail("missing bundleVersion");
+            if (!m.installerVersion) fail("missing installerVersion");
+            if (!m.installerUrl) fail("missing installerUrl");
+            if (!Array.isArray(m.components) || !m.components.length) fail("missing components");
+            const ids = new Set();
+            for (const c of m.components) {
+              for (const key of ["id", "kind", "url", "targetPath"]) {
+                if (!c[key]) fail(`component missing ${key}: ${JSON.stringify(c)}`);
+              }
+              if (!["file", "archive-extract"].includes(c.kind)) fail(`bad kind on ${c.id}`);
+              if (ids.has(c.id)) fail(`duplicate id ${c.id}`);
+              ids.add(c.id);
+              if (typeof c.sha256 !== "string") fail(`bad sha256 on ${c.id}`);
+              if (typeof c.sizeBytes !== "number") fail(`bad sizeBytes on ${c.id}`);
+            }
+            console.log(`manifest OK: bundle ${m.bundleVersion}, ${m.components.length} components`);
+          '

@@ -1,0 +1,4 @@
+publish/.env
+publish/node_modules/
+staging/
+*.zip
