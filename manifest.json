@@ -1,8 +1,9 @@
 {
-  "bundleVersion": "2026.07.19-2",
-  "installerVersion": "1.0.0",
+  "bundleVersion": "2026.07.19-4",
+  "installerVersion": "1.0.2",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 20,
+  "basePipPackages": ["matplotlib"],
   "requirements": {
     "os": "Windows 10/11 64-bit",
     "gpu": "NVIDIA"

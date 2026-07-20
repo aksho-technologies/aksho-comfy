@@ -24,7 +24,7 @@ param(
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Script:InstallerVersion = '1.0.0'
+$Script:InstallerVersion = '1.0.2'
 $Script:BaseUrl = 'https://dl.akshoai.com'
 $Script:ManifestUrl = "$Script:BaseUrl/manifest.json"
 $Script:ComfyPort = 8188
@@ -138,7 +138,9 @@ function Invoke-PostInstall([string]$root, $components) {
             $req = Join-Path $extDir $c.postInstall.pipRequirements
             if (Test-Path $req) {
                 Write-Info "Installing python packages for $($c.id)..."
-                & $python -m pip install -q -r $req
+                # -s mirrors the launcher: no user site-packages, so pip can neither
+                # install to nor satisfy requirements from a location ComfyUI won't see.
+                & $python -s -m pip install -q -r $req
             }
         }
         if ($c.postInstall.runScript) {
@@ -149,6 +151,16 @@ function Invoke-PostInstall([string]$root, $components) {
             }
         }
     }
+}
+
+function Install-BasePipPackages([string]$root, $manifest) {
+    # Packages the bundle needs beyond the extensions' own requirements files
+    # (e.g. imports an extension's dependency pulls in only at runtime).
+    if (-not $manifest.basePipPackages) { return }
+    $python = Join-Path $root 'python_embeded\python.exe'
+    if (-not (Test-Path $python)) { return }
+    Write-Info 'Ensuring base python packages...'
+    & $python -s -m pip install -q @($manifest.basePipPackages)
 }
 
 function Write-Launchers([string]$root) {
@@ -262,6 +274,8 @@ if ($needed.Count -eq 0) {
 
     Invoke-PostInstall $root ($needed | Where-Object { $_.postInstall })
 }
+
+Install-BasePipPackages $root $manifest
 
 $state.bundleVersion = $manifest.bundleVersion
 Save-InstalledState $root $state
