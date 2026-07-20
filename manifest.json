@@ -1,9 +1,11 @@
 {
-  "bundleVersion": "2026.07.19-4",
+  "bundleVersion": "2026.07.20-1",
   "installerVersion": "1.0.2",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 20,
-  "basePipPackages": ["matplotlib"],
+  "basePipPackages": [
+    "matplotlib"
+  ],
   "requirements": {
     "os": "Windows 10/11 64-bit",
     "gpu": "NVIDIA"
@@ -63,6 +65,22 @@
       "sha256": "474464dcd7ce9383b1ec7e9066710886057efe200610a622f736ebfa0d11ca5a",
       "sizeBytes": 549549,
       "pinnedCommit": "cb4a46ba9b0e"
+    },
+    {
+      "id": "ext-aksho-modelinfo",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-ModelInfo.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-ModelInfo",
+      "sha256": "fbdf2d8be8cb534e51f867773b2afd1024815ed53d8834a6be0e78b0827afbf5",
+      "sizeBytes": 1579
+    },
+    {
+      "id": "model-text-encoder-qwen3",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/qwen_3_06b_base.safetensors",
+      "targetPath": "ComfyUI/models/text_encoders/qwen_3_06b_base.safetensors",
+      "sha256": "cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba",
+      "sizeBytes": 1192135096
     },
     {
       "id": "model-checkpoint-dreamhex-v5",
