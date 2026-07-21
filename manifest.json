@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.07.20-1",
+  "bundleVersion": "2026.07.21-1",
   "installerVersion": "1.0.2",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 20,
@@ -65,6 +65,39 @@
       "sha256": "474464dcd7ce9383b1ec7e9066710886057efe200610a622f736ebfa0d11ca5a",
       "sizeBytes": 549549,
       "pinnedCommit": "cb4a46ba9b0e"
+    },
+    {
+      "id": "ext-inpaint-nodes",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/comfyui-inpaint-nodes.zip",
+      "targetPath": "ComfyUI/custom_nodes/comfyui-inpaint-nodes",
+      "sha256": "b4c226685c9936e96c6790dcf808bd0ff04b55749c8a337227754d9c348e32bc",
+      "sizeBytes": 4556452,
+      "pinnedCommit": "d4a318f00fff"
+    },
+    {
+      "id": "model-inpaint-fooocus-head",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/fooocus_inpaint_head.pth",
+      "targetPath": "ComfyUI/models/inpaint/fooocus_inpaint_head.pth",
+      "sha256": "32f7f838e0c6d8f13437ba8411e77a4688d77a2e34df8857e4ef4d51f6b97692",
+      "sizeBytes": 52602
+    },
+    {
+      "id": "model-inpaint-fooocus-patch",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/inpaint_v26.fooocus.patch",
+      "targetPath": "ComfyUI/models/inpaint/inpaint_v26.fooocus.patch",
+      "sha256": "f8657a025104e22d70f9c060635d8e8c2196f433871a2f68dc40abd2171f0d59",
+      "sizeBytes": 1323362033
+    },
+    {
+      "id": "model-inpaint-lama",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/big-lama.pt",
+      "targetPath": "ComfyUI/models/inpaint/big-lama.pt",
+      "sha256": "344c77bbcb158f17dd143070d1e789f38a66c04202311ae3a258ef66667a9ea9",
+      "sizeBytes": 205669692
     },
     {
       "id": "ext-aksho-modelinfo",
