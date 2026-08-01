@@ -6,14 +6,16 @@ One-click local image generation for [AkshoAI's Atelier](https://akshoai.com/ate
 
 - Windows 10 or 11, 64-bit
 - NVIDIA GPU (8 GB VRAM or more recommended)
-- About 20 GB of free disk space
-- An internet connection for the initial download (~16 GB)
+- 15 GB of free disk space for the core install, up to 43 GB with every feature ticked
+- An internet connection for the initial download
 
 ## Install
 
 1. Download [`install.bat`](https://raw.githubusercontent.com/aksho-technologies/aksho-comfy/main/install.bat) (Right click, Save link as).
-2. Double-click it and pick an install folder (default `C:\AkshoComfy`).
+2. Double-click it. Tick the features you want, choose an install folder (default `C:\AkshoComfy`), and hit Install.
 3. Wait for the downloads to finish. ComfyUI starts automatically and your browser opens Atelier: choose the **Local** provider and connect.
+
+Everything is ticked to start with. Untick anything you will not use and the installer skips those downloads entirely; run **`Update Aksho ComfyUI.bat`** later to add a feature back. Removing a tick never deletes files you already have, it only stops keeping them up to date.
 
 From then on, start everything with **`Run Aksho ComfyUI.bat`** in your install folder.
 
@@ -21,16 +23,21 @@ From then on, start everything with **`Run Aksho ComfyUI.bat`** in your install 
 
 ## What's in the box
 
-| Component | Purpose |
-|---|---|
-| ComfyUI (portable) | The generation engine, preconfigured for Atelier |
-| Dreamhex v5 by Vetehine | The bundled image checkpoint |
-| 4x-AnimeSharp | Hi-res upscaling |
-| face_yolov9c + hand_yolov9c | Automatic face and hand detailing |
-| Anime IP-Adapter + CLIP Vision | Image Reference (consistent characters) |
-| OpenPose + Depth ControlNets | 3D Poser support |
-| IPAdapter Plus, Impact Pack, Impact Subpack, PPM | Required ComfyUI extensions |
-| Aksho relay agent | Optional remote play through the Aksho relay |
+Each row is one tick box in the installer.
+
+| Feature | Download | What it brings |
+|---|---|---|
+| Core | 12.6 GB | ComfyUI portable, the Dreamhex v5 checkpoint by Vetehine, image reference so a character's identity carries across generations, and the Aksho relay agent for optional remote play |
+| ADetailer | 101 MB | face_yolov9c + hand_yolov9c with Impact Pack, for automatic face and hand cleanup |
+| Upscaling | 64 MB | 4x-AnimeSharp |
+| 3D Poser | 4.7 GB | OpenPose and Depth ControlNets |
+| Inpaint | 1.4 GB | Fooocus inpaint patch, LaMa erase, and the inpaint nodes |
+| Multi-Character | 4.9 GB | Regional conditioning and GLIGEN grounding, for several characters in one image |
+| Anima support | 1.1 GB | Text encoder for Anima checkpoints |
+| Z-Image support | 5.6 GB | Text encoder and VAE for Z-Image checkpoints |
+| Krea2 support | 5.1 GB | Text encoder and VAE for Krea2 checkpoints |
+
+The last three provide the plumbing those architectures need; bring your own checkpoint for them.
 
 Want more models? Drop any additional checkpoints, LoRAs, or upscalers into the matching `ComfyUI\models\` folders and they appear in Atelier automatically.
 

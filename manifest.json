@@ -1,8 +1,8 @@
 {
-  "bundleVersion": "2026.07.21-1",
-  "installerVersion": "1.0.2",
+  "bundleVersion": "2026.08.01-1",
+  "installerVersion": "1.1.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
-  "minDiskSpaceGB": 20,
+  "minDiskSpaceGB": 15,
   "basePipPackages": [
     "matplotlib"
   ],
@@ -10,6 +10,100 @@
     "os": "Windows 10/11 64-bit",
     "gpu": "NVIDIA"
   },
+  "packs": [
+    {
+      "id": "core",
+      "label": "Core",
+      "description": "Everything you need to start generating right now. The rest is optional.",
+      "required": true,
+      "components": [
+        "comfyui-portable",
+        "ext-aksho-modelinfo",
+        "aksho-relay-agent",
+        "model-checkpoint-dreamhex-v5",
+        "ext-ipadapter-plus",
+        "model-clip-vision-vith",
+        "model-ipadapter-noob"
+      ]
+    },
+    {
+      "id": "adetailer",
+      "label": "ADetailer",
+      "description": "Automatic face and hand cleanup after every generation.",
+      "components": [
+        "ext-impact-pack",
+        "ext-impact-subpack",
+        "model-adetailer-face",
+        "model-adetailer-hand"
+      ]
+    },
+    {
+      "id": "upscale",
+      "label": "Upscaling",
+      "description": "Anime-tuned upscaler for high-resolution output.",
+      "components": [
+        "model-upscale-4x-animesharp"
+      ]
+    },
+    {
+      "id": "poser",
+      "label": "3D Poser",
+      "description": "Pose a 3D figure and generate from the skeleton or its depth map.",
+      "components": [
+        "model-controlnet-openpose",
+        "model-controlnet-depth"
+      ]
+    },
+    {
+      "id": "inpaint",
+      "label": "Inpaint",
+      "description": "Paint a mask and regenerate, fill or erase inside it.",
+      "components": [
+        "ext-inpaint-nodes",
+        "model-inpaint-fooocus-head",
+        "model-inpaint-fooocus-patch",
+        "model-inpaint-lama"
+      ]
+    },
+    {
+      "id": "multi",
+      "label": "Multi-Character",
+      "description": "Place several hosts on a grid and keep each one's identity in its own region.",
+      "components": [
+        "ext-res4lyf",
+        "ext-gligen-xl",
+        "model-gligen-xl",
+        "model-clip-l",
+        "model-clip-g"
+      ]
+    },
+    {
+      "id": "anima",
+      "label": "Anima support",
+      "description": "Text encoder for Anima checkpoints. Bring your own checkpoint.",
+      "components": [
+        "model-text-encoder-qwen3"
+      ]
+    },
+    {
+      "id": "z-image",
+      "label": "Z-Image support",
+      "description": "Text encoder and VAE for Z-Image checkpoints. Bring your own checkpoint.",
+      "components": [
+        "model-text-encoder-qwen3-4b",
+        "model-vae-z-image"
+      ]
+    },
+    {
+      "id": "krea2",
+      "label": "Krea2 support",
+      "description": "Text encoder and VAE for Krea2 checkpoints. Bring your own checkpoint.",
+      "components": [
+        "model-text-encoder-qwen3vl-4b",
+        "model-vae-qwen-image"
+      ]
+    }
+  ],
   "components": [
     {
       "id": "comfyui-portable",
@@ -19,6 +113,31 @@
       "sha256": "95eee8d5277046000c370e886fa29285d75f099766edaadada0ac00401477f20",
       "sizeBytes": 2684408818,
       "sourceVersion": "v0.28.0"
+    },
+    {
+      "id": "ext-aksho-modelinfo",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-ModelInfo.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-ModelInfo",
+      "sha256": "e4a4990cab2e8ac2e461488e35ab2147405059a62f739558447fadbe856075bd",
+      "sizeBytes": 1876
+    },
+    {
+      "id": "aksho-relay-agent",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/agent/aksho-relay-agent.zip",
+      "targetPath": ".",
+      "sha256": "c4722d74a8ba5c2886420b9fecc45cc8b025258e3b48fb320c368554e5dceffa",
+      "sizeBytes": 5022
+    },
+    {
+      "id": "model-checkpoint-dreamhex-v5",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/Vete_Dreamhex_v5.safetensors",
+      "targetPath": "ComfyUI/models/checkpoints/Vete_Dreamhex_v5.safetensors",
+      "renameFrom": "ComfyUI/models/checkpoints/veteDreamhexILL_v5.safetensors",
+      "sha256": "6706e7f7ec24fb090f6212682d682127350cabd600083822325c0e05700af355",
+      "sizeBytes": 6938040706
     },
     {
       "id": "ext-ipadapter-plus",
@@ -33,38 +152,80 @@
       "pinnedCommit": "a0f451a5113c"
     },
     {
-      "id": "ext-impact-pack",
-      "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/extensions/ComfyUI-Impact-Pack.zip",
-      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Pack",
-      "sha256": "0aa3b3758aeb95a3fa246f7b01aa614ef58903afcb864c867d980bda31824d5c",
-      "sizeBytes": 2664007,
-      "postInstall": {
-        "pipRequirements": "requirements.txt",
-        "runScript": "install.py"
-      },
-      "pinnedCommit": "429d0159ad42"
+      "id": "model-clip-vision-vith",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "targetPath": "ComfyUI/models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "sha256": "6ca9667da1ca9e0b0f75e46bb030f7e011f44f86cbfb8d5a36590fcd7507b030",
+      "sizeBytes": 2528373448
     },
     {
-      "id": "ext-impact-subpack",
+      "id": "model-ipadapter-noob",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/ip_adapter_Noobtest_800000.bin",
+      "targetPath": "ComfyUI/models/ipadapter/ip_adapter_Noobtest_800000.bin",
+      "sha256": "8bdbc67d432c73e93649d9f87e99753064410a09513692cf77d957de9e0aeef7",
+      "sizeBytes": 1396798350
+    },
+    {
+      "id": "model-controlnet-openpose",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/controlnet-openpose-illustrious.safetensors",
+      "targetPath": "ComfyUI/models/controlnet/controlnet-openpose-illustrious.safetensors",
+      "sha256": "0d8bacf24534dc6f2716f5d0ffa6085571928776f8687565ef290a17d9f3615c",
+      "sizeBytes": 2502140008
+    },
+    {
+      "id": "model-controlnet-depth",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/controlnet-depth-illustrious.safetensors",
+      "targetPath": "ComfyUI/models/controlnet/controlnet-depth-illustrious.safetensors",
+      "sha256": "806fcb75876fa08c684157f1fef9deb423b70c38534e8c629ff2069477e7dd8b",
+      "sizeBytes": 2502139136
+    },
+    {
+      "id": "ext-res4lyf",
       "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/extensions/ComfyUI-Impact-Subpack.zip",
-      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Subpack",
-      "sha256": "a032db3a9bfa247ee869e6b8667b9d180adb8b1a9e0a4e6c40279e29430a2dc1",
-      "sizeBytes": 26178,
+      "url": "https://dl.akshoai.com/extensions/RES4LYF.zip",
+      "targetPath": "ComfyUI/custom_nodes/RES4LYF",
+      "sha256": "4e77277a39860c221d67819aa455f766daea39979a688514ec8afa543c1624ee",
+      "sizeBytes": 561455,
       "postInstall": {
         "pipRequirements": "requirements.txt"
       },
-      "pinnedCommit": "50c7b71a6a22"
+      "pinnedCommit": "022c873c6d19"
     },
     {
-      "id": "ext-ppm",
+      "id": "ext-gligen-xl",
       "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/extensions/ComfyUI-ppm.zip",
-      "targetPath": "ComfyUI/custom_nodes/ComfyUI-ppm",
-      "sha256": "474464dcd7ce9383b1ec7e9066710886057efe200610a622f736ebfa0d11ca5a",
-      "sizeBytes": 549549,
-      "pinnedCommit": "cb4a46ba9b0e"
+      "url": "https://dl.akshoai.com/extensions/gligen-xl.zip",
+      "targetPath": "ComfyUI/custom_nodes/gligen-xl",
+      "sha256": "f213db40c063a867ff34092747ed86f3447ce4ea54793f5c61dc141c0e3ddb5e",
+      "sizeBytes": 3283
+    },
+    {
+      "id": "model-gligen-xl",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/gligen-xl-1024-fp16.safetensors",
+      "targetPath": "ComfyUI/models/gligen/gligen-xl-1024-fp16.safetensors",
+      "sha256": "54717388ab4bd65a652d838b935f7a7d38897b623f2706e652dc8592798c98aa",
+      "sizeBytes": 3625045920
+    },
+    {
+      "id": "model-clip-l",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/clip_l.safetensors",
+      "targetPath": "ComfyUI/models/clip/clip_l.safetensors",
+      "sha256": "660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd",
+      "sizeBytes": 246144152
+    },
+    {
+      "id": "model-clip-g",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/clip_g.safetensors",
+      "targetPath": "ComfyUI/models/clip/clip_g.safetensors",
+      "sha256": "ec310df2af79c318e24d20511b601a591ca8cd4f1fce1d8dff822a356bcdb1f4",
+      "sizeBytes": 1389382176
     },
     {
       "id": "ext-inpaint-nodes",
@@ -100,69 +261,29 @@
       "sizeBytes": 205669692
     },
     {
-      "id": "ext-aksho-modelinfo",
+      "id": "ext-impact-pack",
       "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-ModelInfo.zip",
-      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-ModelInfo",
-      "sha256": "fbdf2d8be8cb534e51f867773b2afd1024815ed53d8834a6be0e78b0827afbf5",
-      "sizeBytes": 1579
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Impact-Pack.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Pack",
+      "sha256": "0aa3b3758aeb95a3fa246f7b01aa614ef58903afcb864c867d980bda31824d5c",
+      "sizeBytes": 2664007,
+      "postInstall": {
+        "pipRequirements": "requirements.txt",
+        "runScript": "install.py"
+      },
+      "pinnedCommit": "429d0159ad42"
     },
     {
-      "id": "model-text-encoder-qwen3",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/qwen_3_06b_base.safetensors",
-      "targetPath": "ComfyUI/models/text_encoders/qwen_3_06b_base.safetensors",
-      "sha256": "cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba",
-      "sizeBytes": 1192135096
-    },
-    {
-      "id": "model-checkpoint-dreamhex-v5",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/veteDreamhexILL_v5.safetensors",
-      "targetPath": "ComfyUI/models/checkpoints/veteDreamhexILL_v5.safetensors",
-      "sha256": "6706e7f7ec24fb090f6212682d682127350cabd600083822325c0e05700af355",
-      "sizeBytes": 6938040706
-    },
-    {
-      "id": "model-controlnet-openpose",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/controlnet-openpose-illustrious.safetensors",
-      "targetPath": "ComfyUI/models/controlnet/controlnet-openpose-illustrious.safetensors",
-      "sha256": "0d8bacf24534dc6f2716f5d0ffa6085571928776f8687565ef290a17d9f3615c",
-      "sizeBytes": 2502140008
-    },
-    {
-      "id": "model-controlnet-depth",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/controlnet-depth-illustrious.safetensors",
-      "targetPath": "ComfyUI/models/controlnet/controlnet-depth-illustrious.safetensors",
-      "sha256": "806fcb75876fa08c684157f1fef9deb423b70c38534e8c629ff2069477e7dd8b",
-      "sizeBytes": 2502139136
-    },
-    {
-      "id": "model-clip-vision-vith",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
-      "targetPath": "ComfyUI/models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
-      "sha256": "6ca9667da1ca9e0b0f75e46bb030f7e011f44f86cbfb8d5a36590fcd7507b030",
-      "sizeBytes": 2528373448
-    },
-    {
-      "id": "model-ipadapter-noob",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/ip_adapter_Noobtest_800000.bin",
-      "targetPath": "ComfyUI/models/ipadapter/ip_adapter_Noobtest_800000.bin",
-      "sha256": "8bdbc67d432c73e93649d9f87e99753064410a09513692cf77d957de9e0aeef7",
-      "sizeBytes": 1396798350
-    },
-    {
-      "id": "model-upscale-4x-animesharp",
-      "kind": "file",
-      "url": "https://huggingface.co/Kim2091/AnimeSharp/resolve/main/4x-AnimeSharp.pth",
-      "targetPath": "ComfyUI/models/upscale_models/4x-AnimeSharp.pth",
-      "sha256": "e7a7de2dafd7331c1992862bbbcd9e9712a9f9f8e6303f0aaa59b4341d359bab",
-      "sizeBytes": 67010245,
-      "source": "original upstream (not redistributed by Aksho, pending author permission)"
+      "id": "ext-impact-subpack",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Impact-Subpack.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Impact-Subpack",
+      "sha256": "a032db3a9bfa247ee869e6b8667b9d180adb8b1a9e0a4e6c40279e29430a2dc1",
+      "sizeBytes": 26178,
+      "postInstall": {
+        "pipRequirements": "requirements.txt"
+      },
+      "pinnedCommit": "50c7b71a6a22"
     },
     {
       "id": "model-adetailer-face",
@@ -183,12 +304,53 @@
       "source": "original upstream (not redistributed by Aksho)"
     },
     {
-      "id": "aksho-relay-agent",
-      "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/agent/aksho-relay-agent.zip",
-      "targetPath": ".",
-      "sha256": "c4722d74a8ba5c2886420b9fecc45cc8b025258e3b48fb320c368554e5dceffa",
-      "sizeBytes": 5022
+      "id": "model-upscale-4x-animesharp",
+      "kind": "file",
+      "url": "https://huggingface.co/Kim2091/AnimeSharp/resolve/main/4x-AnimeSharp.pth",
+      "targetPath": "ComfyUI/models/upscale_models/4x-AnimeSharp.pth",
+      "sha256": "e7a7de2dafd7331c1992862bbbcd9e9712a9f9f8e6303f0aaa59b4341d359bab",
+      "sizeBytes": 67010245,
+      "source": "original upstream (not redistributed by Aksho, pending author permission)"
+    },
+    {
+      "id": "model-text-encoder-qwen3",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/qwen_3_06b_base.safetensors",
+      "targetPath": "ComfyUI/models/text_encoders/qwen_3_06b_base.safetensors",
+      "sha256": "cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba",
+      "sizeBytes": 1192135096
+    },
+    {
+      "id": "model-text-encoder-qwen3-4b",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/qwen_3_4b_fp8_mixed.safetensors",
+      "targetPath": "ComfyUI/models/text_encoders/qwen_3_4b_fp8_mixed.safetensors",
+      "sha256": "72450b19758172c5a7273cf7de729d1c17e7f434a104a00167624cba94f68f15",
+      "sizeBytes": 5631994051
+    },
+    {
+      "id": "model-vae-z-image",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/z_image_ae.safetensors",
+      "targetPath": "ComfyUI/models/vae/z_image_ae.safetensors",
+      "sha256": "afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+      "sizeBytes": 335304388
+    },
+    {
+      "id": "model-text-encoder-qwen3vl-4b",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/qwen3vl_4b_fp8_scaled.safetensors",
+      "targetPath": "ComfyUI/models/text_encoders/qwen3vl_4b_fp8_scaled.safetensors",
+      "sha256": "54bd5144df0bbc25dd6ccadfcb826b521445a1b06ae5a42570bdd2974ca87094",
+      "sizeBytes": 5242467968
+    },
+    {
+      "id": "model-vae-qwen-image",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/qwen_image_vae.safetensors",
+      "targetPath": "ComfyUI/models/vae/qwen_image_vae.safetensors",
+      "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+      "sizeBytes": 253806246
     }
   ]
 }

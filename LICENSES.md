@@ -8,7 +8,12 @@ The Aksho Comfy installer scripts in this repository are MIT licensed (see [LICE
 | ComfyUI_IPAdapter_plus | cubiq | GPL-3.0 | Clear |
 | ComfyUI-Impact-Pack | ltdrdata | GPL-3.0 | Clear |
 | ComfyUI-Impact-Subpack | ltdrdata | GPL-3.0 | Clear |
-| ComfyUI-ppm | pamparamm | AGPL-3.0 | Clear |
+| RES4LYF | [ClownsharkBatwing](https://github.com/ClownsharkBatwing/RES4LYF) | AGPL-3.0 with a prepended commercial-service rider; `pyproject.toml` separately declares MIT | BLOCKED pending legal review and/or the author's written permission. The rider prohibits use "for the purpose of providing a commercial service, such as (but not limited to) an AI image generation service ... whether standalone or integrated into a larger product" without a separate commercial license. Multi-Character depends on this extension |
+| gligen-xl loader node | Aksho | MIT (this repository) | Clear |
+| gligen-xl-1024 | [jiuntian](https://huggingface.co/jiuntian/gligen-xl-1024), derived from stabilityai/stable-diffusion-xl-base-1.0; builds on GLIGEN (Li et al., CVPR 2023) and IGLIGEN (Lian et al., 2023) | Apache-2.0 | Clear |
+| clip_l / clip_g | OpenAI CLIP ViT-L/14 and LAION CLIP ViT-bigG/14 text towers, the same encoders already inside every SDXL checkpoint | MIT (both upstream) | Clear |
+| qwen_3_06b_base, qwen_3_4b_fp8_mixed, qwen3vl_4b_fp8_scaled | Qwen (Alibaba), repackaged for ComfyUI | Apache-2.0 upstream | Provenance of the repackaged files not yet recorded; confirm before the next publish |
+| z_image_ae, qwen_image_vae | Z-Image and Qwen-Image autoencoders | Not yet confirmed | Confirm before the next publish |
 | Dreamhex v5 checkpoint | Vetehine | Redistributed with the author's permission | Clear |
 | ip_adapter_Noobtest_800000 | [kataragi](https://huggingface.co/kataragi/Noob_ipadapter) | CreativeML OpenRAIL-M | Clear (use-based restrictions carry to users) |
 | CLIP-ViT-H-14-laion2B-s32B-b79K | LAION / OpenCLIP | MIT | Clear |
