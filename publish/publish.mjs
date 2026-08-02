@@ -140,6 +140,22 @@ function cmdBump(version) {
   console.log(`[PUBLISH] bundleVersion -> ${version}`)
 }
 
+/** Every component URL must actually serve the bytes the manifest promises.
+ *  A manifest can carry a correct hash and size for a file that was never
+ *  uploaded, and the failure only shows up as a 404 on someone's install. */
+async function verifyManifestUrls(manifest) {
+  const broken = []
+  for (const c of manifest.components) {
+    const res = await fetch(c.url, { method: 'HEAD', redirect: 'follow' })
+    const length = Number(res.headers.get('content-length') || 0)
+    if (!res.ok) broken.push(`${c.id}: HTTP ${res.status} ${c.url}`)
+    else if (length && length !== Number(c.sizeBytes)) {
+      broken.push(`${c.id}: serves ${length} bytes, manifest says ${c.sizeBytes}`)
+    }
+  }
+  return broken
+}
+
 async function cmdPublish() {
   const client = s3()
   const manifest = loadManifest()
@@ -148,6 +164,15 @@ async function cmdPublish() {
     console.error(`[PUBLISH] Refusing to publish - components without sha256/sizeBytes: ${empty.map((c) => c.id).join(', ')}`)
     process.exit(1)
   }
+
+  console.log('[PUBLISH] Checking every component URL resolves...')
+  const broken = await verifyManifestUrls(manifest)
+  if (broken.length) {
+    console.error('[PUBLISH] Refusing to publish - these components are not downloadable:')
+    for (const line of broken) console.error(`  ${line}`)
+    process.exit(1)
+  }
+  console.log(`[PUBLISH] All ${manifest.components.length} component URLs verified`)
   await client.send(new PutObjectCommand({
     Bucket: BUCKET,
     Key: 'installer/install.ps1',
