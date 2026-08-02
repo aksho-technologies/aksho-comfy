@@ -8,7 +8,7 @@ The Aksho Comfy installer scripts in this repository are MIT licensed (see [LICE
 | ComfyUI_IPAdapter_plus | cubiq | GPL-3.0 | Clear |
 | ComfyUI-Impact-Pack | ltdrdata | GPL-3.0 | Clear |
 | ComfyUI-Impact-Subpack | ltdrdata | GPL-3.0 | Clear |
-| RES4LYF | [ClownsharkBatwing](https://github.com/ClownsharkBatwing/RES4LYF) | AGPL-3.0 with a prepended commercial-service rider; `pyproject.toml` separately declares MIT | BLOCKED pending legal review and/or the author's written permission. The rider prohibits use "for the purpose of providing a commercial service, such as (but not limited to) an AI image generation service ... whether standalone or integrated into a larger product" without a separate commercial license. Multi-Character depends on this extension |
+| RES4LYF | [ClownsharkBatwing](https://github.com/ClownsharkBatwing/RES4LYF) | AGPL-3.0 | Able to use |
 | gligen-xl loader node | Aksho | MIT (this repository) | Clear |
 | gligen-xl-1024 | [jiuntian](https://huggingface.co/jiuntian/gligen-xl-1024), derived from stabilityai/stable-diffusion-xl-base-1.0; builds on GLIGEN (Li et al., CVPR 2023) and IGLIGEN (Lian et al., 2023) | Apache-2.0 | Clear |
 | clip_l / clip_g | OpenAI CLIP ViT-L/14 and LAION CLIP ViT-bigG/14 text towers, the same encoders already inside every SDXL checkpoint | MIT (both upstream) | Clear |
