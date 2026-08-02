@@ -140,6 +140,33 @@ function cmdBump(version) {
   console.log(`[PUBLISH] bundleVersion -> ${version}`)
 }
 
+/** Drop the CDN's copy of the given URLs.
+ *
+ *  Objects are served through Cloudflare with a four-hour TTL, so replacing a
+ *  file at the same key leaves the old bytes in front of users until it
+ *  expires. That is invisible locally and indistinguishable from a bad upload.
+ *  Needs CLOUDFLARE_CUSTOM_ACCESS and CLOUDFLARE_ZONE_ID in publish/.env. */
+async function purgeCdn(urls) {
+  const token = process.env.CLOUDFLARE_CUSTOM_ACCESS
+  const zone = process.env.CLOUDFLARE_ZONE_ID
+  if (!token || !zone) {
+    console.warn('[PUBLISH] No Cloudflare credentials - skipping cache purge. Replaced files may serve stale for up to 4 hours.')
+    return
+  }
+  // The API takes at most 30 URLs per call.
+  for (let i = 0; i < urls.length; i += 30) {
+    const batch = urls.slice(i, i + 30)
+    const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${zone}/purge_cache`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: batch }),
+    })
+    const body = await res.json()
+    if (!body.success) throw new Error(`Cache purge failed: ${JSON.stringify(body.errors || body).slice(0, 200)}`)
+  }
+  console.log(`[PUBLISH] Purged ${urls.length} URL(s) from the CDN`)
+}
+
 /** Every component URL must actually serve the bytes the manifest promises.
  *  A manifest can carry a correct hash and size for a file that was never
  *  uploaded, and the failure only shows up as a 404 on someone's install. */
@@ -164,6 +191,14 @@ async function cmdPublish() {
     console.error(`[PUBLISH] Refusing to publish - components without sha256/sizeBytes: ${empty.map((c) => c.id).join(', ')}`)
     process.exit(1)
   }
+
+  // Purge before verifying: a component replaced this session would otherwise
+  // be checked against the copy the CDN is still holding.
+  await purgeCdn([
+    ...manifest.components.map((c) => c.url).filter((u) => u.startsWith('https://dl.akshoai.com/')),
+    'https://dl.akshoai.com/manifest.json',
+    'https://dl.akshoai.com/installer/install.ps1',
+  ])
 
   console.log('[PUBLISH] Checking every component URL resolves...')
   const broken = await verifyManifestUrls(manifest)
