@@ -409,7 +409,7 @@ cd /d "%~dp0"
 title Aksho ComfyUI
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0installer\install.ps1" -UpdateCheck
 echo [AKSHO COMFY] Starting ComfyUI on port 8188...
-.\python_embeded\python.exe -s ComfyUI\main.py --port 8188 --enable-cors-header --disable-auto-launch
+.\python_embeded\python.exe -s ComfyUI\main.py --port 8188 --enable-cors-header --disable-auto-launch --preview-method auto
 pause
 '@
     $updater = @'
