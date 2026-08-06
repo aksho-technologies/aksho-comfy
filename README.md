@@ -31,7 +31,7 @@ Each row is one tick box in the installer.
 | ADetailer | 101 MB | face_yolov9c + hand_yolov9c with Impact Pack, for automatic face and hand cleanup |
 | Upscaling | 64 MB | 4x-AnimeSharp |
 | 3D Poser | 4.7 GB | OpenPose and Depth ControlNets |
-| Inpaint | 1.4 GB | Fooocus inpaint patch, LaMa erase, and the inpaint nodes |
+| Inpaint | 0.2 GB | LaMa erase and the inpaint nodes |
 | Multi-Character | 4.9 GB | Regional conditioning and GLIGEN grounding, for several characters in one image |
 | Anima support | 1.1 GB | Text encoder for Anima checkpoints |
 | Z-Image support | 5.6 GB | Text encoder and VAE for Z-Image checkpoints |

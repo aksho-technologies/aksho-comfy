@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.08.01-1",
+  "bundleVersion": "2026.08.06-1",
   "installerVersion": "1.1.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -60,8 +60,7 @@
       "description": "Paint a mask and regenerate, fill or erase inside it.",
       "components": [
         "ext-inpaint-nodes",
-        "model-inpaint-fooocus-head",
-        "model-inpaint-fooocus-patch",
+        "ext-impact-pack",
         "model-inpaint-lama"
       ]
     },
@@ -235,22 +234,6 @@
       "sha256": "b4c226685c9936e96c6790dcf808bd0ff04b55749c8a337227754d9c348e32bc",
       "sizeBytes": 4556452,
       "pinnedCommit": "d4a318f00fff"
-    },
-    {
-      "id": "model-inpaint-fooocus-head",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/fooocus_inpaint_head.pth",
-      "targetPath": "ComfyUI/models/inpaint/fooocus_inpaint_head.pth",
-      "sha256": "32f7f838e0c6d8f13437ba8411e77a4688d77a2e34df8857e4ef4d51f6b97692",
-      "sizeBytes": 52602
-    },
-    {
-      "id": "model-inpaint-fooocus-patch",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/inpaint_v26.fooocus.patch",
-      "targetPath": "ComfyUI/models/inpaint/inpaint_v26.fooocus.patch",
-      "sha256": "f8657a025104e22d70f9c060635d8e8c2196f433871a2f68dc40abd2171f0d59",
-      "sizeBytes": 1323362033
     },
     {
       "id": "model-inpaint-lama",
