@@ -29,7 +29,7 @@ param(
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Script:InstallerVersion = '1.1.0'
+$Script:InstallerVersion = '1.1.1'
 $Script:BaseUrl = 'https://dl.akshoai.com'
 $Script:ManifestUrl = "$Script:BaseUrl/manifest.json"
 $Script:ComfyPort = 8188
@@ -424,7 +424,16 @@ pause
     Set-Content -Path (Join-Path $root 'Update Aksho ComfyUI.bat') -Value $updater -Encoding ASCII
     $installerDir = Join-Path $root 'installer'
     New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
-    Copy-Item -Force $PSCommandPath (Join-Path $installerDir 'install.ps1')
+    # After the first install this script IS <root>\installer\install.ps1 (see
+    # Resolve-ExistingRoot, which expects exactly that), so copying it over
+    # itself threw a red IOException on every update run. Nothing was broken,
+    # but it reads like a crash.
+    $stashed = Join-Path $installerDir 'install.ps1'
+    $sourcePath = (Resolve-Path -LiteralPath $PSCommandPath).Path
+    $targetPath = if (Test-Path -LiteralPath $stashed) { (Resolve-Path -LiteralPath $stashed).Path } else { $stashed }
+    if ($sourcePath -ne $targetPath) {
+        Copy-Item -Force -LiteralPath $sourcePath -Destination $stashed
+    }
 }
 
 function Invoke-SelfUpdate([string]$root, $manifest) {
@@ -487,7 +496,10 @@ if ($UpdateCheck) {
     if (-not $manifest) { Write-Err 'Could not fetch the update manifest. Check your connection and try again.'; exit 1 }
 }
 
-Invoke-SelfUpdate $root $manifest
+# $null = ... because the function returns $false when no installer update is
+# needed, and a bare call drops that boolean on the output stream: users saw a
+# stray "False" printed in the middle of the run.
+$null = Invoke-SelfUpdate $root $manifest
 
 # Everything is ticked on a first run; afterwards the saved selection is the default.
 # A single-element array survives a JSON round trip as a bare string, hence the @().
