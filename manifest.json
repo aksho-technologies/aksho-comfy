@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.08.06-1",
+  "bundleVersion": "2026.09.22-1",
   "installerVersion": "1.1.1",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -118,8 +118,8 @@
       "kind": "archive-extract",
       "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-ModelInfo.zip",
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-ModelInfo",
-      "sha256": "e4a4990cab2e8ac2e461488e35ab2147405059a62f739558447fadbe856075bd",
-      "sizeBytes": 1876
+      "sha256": "e6f2963e7ff06456b4bcae7ad65a135893a68b515455f217b40a6e1f2de60f26",
+      "sizeBytes": 2634
     },
     {
       "id": "aksho-relay-agent",
