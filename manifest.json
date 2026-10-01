@@ -1,6 +1,6 @@
 {
-  "bundleVersion": "2026.09.22-1",
-  "installerVersion": "1.1.1",
+  "bundleVersion": "2026.09.30-1",
+  "installerVersion": "1.1.2",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
   "basePipPackages": [
@@ -109,9 +109,21 @@
       "kind": "archive-extract",
       "url": "https://dl.akshoai.com/comfyui/comfyui-portable.zip",
       "targetPath": ".",
-      "sha256": "95eee8d5277046000c370e886fa29285d75f099766edaadada0ac00401477f20",
-      "sizeBytes": 2684408818,
-      "sourceVersion": "v0.28.0"
+      "replaces": [
+        "python_embeded",
+        "ComfyUI"
+      ],
+      "keeps": [
+        "ComfyUI/custom_nodes",
+        "ComfyUI/models",
+        "ComfyUI/user",
+        "ComfyUI/input",
+        "ComfyUI/output",
+        "ComfyUI/temp"
+      ],
+      "sha256": "ca0ceffd764b37ac4ae767715c2fdcf634ff6bf0f773e4950137fd3c81dd65b1",
+      "sizeBytes": 2616106448,
+      "sourceVersion": "v0.38.0"
     },
     {
       "id": "ext-aksho-modelinfo",

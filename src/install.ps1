@@ -23,14 +23,15 @@ param(
     [string]$InstallPath = '',
     [switch]$UpdateCheck,
     [switch]$NoLaunch,
-    [switch]$SkipSelfUpdate
+    [switch]$SkipSelfUpdate,
+    [string]$BaseUrl = 'https://dl.akshoai.com'
 )
 
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Script:InstallerVersion = '1.1.1'
-$Script:BaseUrl = 'https://dl.akshoai.com'
+$Script:InstallerVersion = '1.1.2'
+$Script:BaseUrl = $BaseUrl.TrimEnd('/')
 $Script:ManifestUrl = "$Script:BaseUrl/manifest.json"
 $Script:ComfyPort = 8188
 $Script:AtelierUrl = 'https://akshoai.com/atelier'
@@ -341,6 +342,37 @@ function Invoke-Download([string]$url, [string]$dest, [string]$sha256) {
     throw "Hash verification failed after retries: $url"
 }
 
+function Clear-DirectoryExcept([string]$dir, [string[]]$keeps) {
+    # Empties $dir except the subtrees listed in $keeps (absolute paths). A kept
+    # subtree deeper inside a child means descending into that child rather
+    # than deleting it whole.
+    foreach ($child in Get-ChildItem -LiteralPath $dir -Force) {
+        $childFull = $child.FullName.TrimEnd('\')
+        if ($keeps -contains $childFull) { continue }
+        $prefix = $childFull + '\'
+        $holdsKept = $child.PSIsContainer -and @($keeps | Where-Object { $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0
+        if ($holdsKept) { Clear-DirectoryExcept $childFull $keeps; continue }
+        Remove-Item -LiteralPath $childFull -Recurse -Force
+    }
+}
+
+function Clear-ReplacedPaths([string]$root, $c) {
+    # An archive that REPLACES a runtime (the embedded Python, ComfyUI's own
+    # code) must not land on top of the old one: extraction never deletes, so
+    # two torch versions' files would sit side by side after a ComfyUI bump.
+    # Each path in 'replaces' is emptied first, except the subtrees in 'keeps',
+    # which hold what the user owns (models, custom nodes, outputs, history).
+    if (-not $c.replaces) { return }
+    $keeps = @()
+    if ($c.keeps) { $keeps = @($c.keeps | ForEach-Object { [IO.Path]::GetFullPath((Join-Path $root $_)).TrimEnd('\') }) }
+    foreach ($rel in $c.replaces) {
+        $dir = Join-Path $root $rel
+        if (-not (Test-Path -LiteralPath $dir)) { continue }
+        Write-Info "Clearing $rel before the new runtime lands (keeping what you own)..."
+        Clear-DirectoryExcept ([IO.Path]::GetFullPath($dir).TrimEnd('\')) $keeps
+    }
+}
+
 function Install-Component([string]$root, $c) {
     $downloads = Join-Path $root '_downloads'
     if ($c.kind -eq 'file') {
@@ -354,6 +386,7 @@ function Install-Component([string]$root, $c) {
         Invoke-Download $c.url $staged $c.sha256
         $target = Join-Path $root $c.targetPath
         New-Item -ItemType Directory -Force -Path $target | Out-Null
+        Clear-ReplacedPaths $root $c
         # Archives are packed so their root IS the target content (no wrapper folder).
         & tar.exe -xf $staged -C $target
         if ($LASTEXITCODE -ne 0) { throw "Extraction failed: $($c.id)" }
@@ -409,7 +442,7 @@ cd /d "%~dp0"
 title Aksho ComfyUI
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0installer\install.ps1" -UpdateCheck
 echo [AKSHO COMFY] Starting ComfyUI on port 8188...
-.\python_embeded\python.exe -s ComfyUI\main.py --port 8188 --enable-cors-header --disable-auto-launch --preview-method auto
+.\python_embeded\python.exe -s ComfyUI\main.py --port 8188 --enable-cors-header --enable-assets --enable-asset-hashing --disable-auto-launch --preview-method auto
 pause
 '@
     $updater = @'
@@ -443,7 +476,7 @@ function Invoke-SelfUpdate([string]$root, $manifest) {
     $newPath = Join-Path $env:TEMP 'aksho-comfy-install-new.ps1'
     & curl.exe -fsSL -m 60 $manifest.installerUrl -o $newPath
     if ($LASTEXITCODE -ne 0) { Write-Info 'Installer self-update failed, continuing with current version.'; return $false }
-    $flags = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $newPath, '-InstallPath', $root, '-SkipSelfUpdate')
+    $flags = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $newPath, '-InstallPath', $root, '-SkipSelfUpdate', '-BaseUrl', $Script:BaseUrl)
     if ($UpdateCheck) { $flags += '-UpdateCheck' }
     if ($NoLaunch) { $flags += '-NoLaunch' }
     & powershell @flags
@@ -503,7 +536,9 @@ $null = Invoke-SelfUpdate $root $manifest
 
 # Everything is ticked on a first run; afterwards the saved selection is the default.
 # A single-element array survives a JSON round trip as a bare string, hence the @().
-$selected = @($state.packs)
+# Nulls are dropped: a state file written as "packs": [ null ] read as one chosen
+# pack that matched nothing, so every optional pack silently stopped updating.
+$selected = @($state.packs | Where-Object { $_ })
 if ($isFresh -or $selected.Count -eq 0) {
     $selected = @($manifest.packs | ForEach-Object { $_.id })
 }
@@ -544,7 +579,11 @@ if ($needed.Count -eq 0) {
         Save-InstalledState $root $state
     }
 
-    Invoke-PostInstall $root ($needed | Where-Object { $_.postInstall })
+    # A replaced runtime is a fresh Python: every extension's packages have to
+    # go back in, not only the ones whose own component changed this run.
+    $runtimeReplaced = @($needed | Where-Object { $_.replaces }).Count -gt 0
+    $postInstallSet = if ($runtimeReplaced) { $components } else { $needed }
+    Invoke-PostInstall $root ($postInstallSet | Where-Object { $_.postInstall })
 }
 
 Install-BasePipPackages $root $manifest
