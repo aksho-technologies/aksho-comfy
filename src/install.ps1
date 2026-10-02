@@ -30,7 +30,7 @@ param(
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Script:InstallerVersion = '1.1.2'
+$Script:InstallerVersion = '1.1.3'
 $Script:BaseUrl = $BaseUrl.TrimEnd('/')
 $Script:ManifestUrl = "$Script:BaseUrl/manifest.json"
 $Script:ComfyPort = 8188
@@ -84,6 +84,22 @@ function Get-PackSize($manifest, $pack) {
         if ($c) { $bytes += [long]$c.sizeBytes }
     }
     return $bytes
+}
+
+function Get-PacksOnDisk([string]$root, $manifest) {
+    # The packs an existing install evidently chose: every one whose files are
+    # all present. Used when the state file names none, so a repaired record
+    # follows what is on disk instead of downloading every pack there is.
+    $found = @()
+    foreach ($pack in $manifest.packs) {
+        $complete = $true
+        foreach ($id in $pack.components) {
+            $c = $manifest.components | Where-Object { $_.id -eq $id } | Select-Object -First 1
+            if (-not $c -or -not (Test-Path -LiteralPath (Join-Path $root $c.targetPath))) { $complete = $false; break }
+        }
+        if ($complete) { $found += $pack.id }
+    }
+    return $found
 }
 
 function Get-SelectedComponents($manifest, $packIds) {
@@ -309,6 +325,23 @@ function Get-ComponentsToInstall([string]$root, $components, $state) {
     $needed = @()
     foreach ($c in $components) {
         $recorded = $state.components.PSObject.Properties[$c.id]
+        if (-not $recorded -and $c.kind -eq 'file') {
+            # A file that is already on disk at the right size and hash (placed
+            # by hand, or by an installer that never recorded it) is adopted
+            # into the state instead of being downloaded again.
+            $target = Join-Path $root $c.targetPath
+            if ((Test-Path -LiteralPath $target) -and ((Get-Item -LiteralPath $target).Length -eq [long]$c.sizeBytes)) {
+                Write-Info "Checking $($c.id) already on disk..."
+                $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()
+                if ($actual -eq $c.sha256.ToLowerInvariant()) {
+                    $state.components | Add-Member -NotePropertyName $c.id -NotePropertyValue ([pscustomobject]@{
+                        sha256 = $c.sha256; sizeBytes = [long]$c.sizeBytes; installedAt = (Get-Date).ToUniversalTime().ToString('o')
+                    }) -Force
+                    Save-InstalledState $root $state
+                    continue
+                }
+            }
+        }
         if (-not $recorded -or $recorded.Value.sha256 -ne $c.sha256) { $needed += $c; continue }
         if ($c.kind -eq 'file') {
             $target = Join-Path $root $c.targetPath
@@ -516,13 +549,26 @@ $isFresh = -not $root
 if ($isFresh) { $root = $Script:DefaultRoot }
 $state = Get-InstalledState $root
 
+# Every run is logged next to the installer, so a failed update can be read
+# back instead of retold. The log is overwritten per run; it is not history.
+if (Test-Path -LiteralPath $root) {
+    try {
+        New-Item -ItemType Directory -Force -Path (Join-Path $root 'installer') | Out-Null
+        Start-Transcript -Path (Join-Path $root 'installer\last-run.log') -Force | Out-Null
+    } catch { }
+}
+
 if ($UpdateCheck) {
     # Fast path for the launcher: never block a launch on network problems.
     $manifest = Get-Manifest 2
     if (-not $manifest) { Write-Info 'Offline - skipping update check.'; exit 0 }
     if ($manifest.bundleVersion -eq $state.bundleVersion) { exit 0 }
-    $answer = Read-Host "Update available ($($state.bundleVersion) -> $($manifest.bundleVersion)). Update now? [Y/n]"
-    if ($answer -and $answer.Trim().ToLowerInvariant() -eq 'n') { exit 0 }
+    # A self-update relaunches this script with -SkipSelfUpdate after the user
+    # already answered the question once; asking again read as an update loop.
+    if (-not $SkipSelfUpdate) {
+        $answer = Read-Host "Update available ($($state.bundleVersion) -> $($manifest.bundleVersion)). Update now? [Y/n]"
+        if ($answer -and $answer.Trim().ToLowerInvariant() -eq 'n') { exit 0 }
+    }
     # Fall through into the full flow below with the fetched manifest.
 } else {
     $manifest = Get-Manifest 30
@@ -539,8 +585,12 @@ $null = Invoke-SelfUpdate $root $manifest
 # Nulls are dropped: a state file written as "packs": [ null ] read as one chosen
 # pack that matched nothing, so every optional pack silently stopped updating.
 $selected = @($state.packs | Where-Object { $_ })
-if ($isFresh -or $selected.Count -eq 0) {
+if ($isFresh) {
     $selected = @($manifest.packs | ForEach-Object { $_.id })
+} elseif ($selected.Count -eq 0) {
+    $selected = @(Get-PacksOnDisk $root $manifest)
+    if ($selected.Count -eq 0) { $selected = @($manifest.packs | ForEach-Object { $_.id }) }
+    Write-Info "No pack selection on record; keeping the packs found on disk: $($selected -join ', ')"
 }
 
 if (-not $UpdateCheck) {

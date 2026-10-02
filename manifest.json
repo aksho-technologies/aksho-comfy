@@ -1,6 +1,6 @@
 {
   "bundleVersion": "2026.09.30-1",
-  "installerVersion": "1.1.2",
+  "installerVersion": "1.1.3",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
   "basePipPackages": [
