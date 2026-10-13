@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.09.30-1",
+  "bundleVersion": "2026.10.13-1",
   "installerVersion": "1.1.3",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -14,8 +14,9 @@
     {
       "id": "core",
       "label": "Core",
-      "description": "Everything you need to start generating right now. The rest is optional.",
+      "description": "Everything you need to start generating, with face cleanup and the anime upscaler.",
       "required": true,
+      "tier": "core",
       "components": [
         "comfyui-portable",
         "ext-aksho-modelinfo",
@@ -23,25 +24,11 @@
         "model-checkpoint-dreamhex-v5",
         "ext-ipadapter-plus",
         "model-clip-vision-vith",
-        "model-ipadapter-noob"
-      ]
-    },
-    {
-      "id": "adetailer",
-      "label": "ADetailer",
-      "description": "Automatic face and hand cleanup after every generation.",
-      "components": [
+        "model-ipadapter-noob",
         "ext-impact-pack",
         "ext-impact-subpack",
         "model-adetailer-face",
-        "model-adetailer-hand"
-      ]
-    },
-    {
-      "id": "upscale",
-      "label": "Upscaling",
-      "description": "Anime-tuned upscaler for high-resolution output.",
-      "components": [
+        "model-adetailer-hand",
         "model-upscale-4x-animesharp"
       ]
     },
@@ -49,6 +36,7 @@
       "id": "poser",
       "label": "3D Poser",
       "description": "Pose a 3D figure and generate from the skeleton or its depth map.",
+      "tier": "recommended",
       "components": [
         "model-controlnet-openpose",
         "model-controlnet-depth"
@@ -58,6 +46,7 @@
       "id": "inpaint",
       "label": "Inpaint",
       "description": "Paint a mask and regenerate, fill or erase inside it.",
+      "tier": "recommended",
       "components": [
         "ext-inpaint-nodes",
         "ext-impact-pack",
@@ -68,6 +57,8 @@
       "id": "multi",
       "label": "Multi-Character",
       "description": "Place several hosts on a grid and keep each one's identity in its own region.",
+      "tier": "optional",
+      "beta": true,
       "components": [
         "ext-res4lyf",
         "ext-gligen-xl",
@@ -79,15 +70,18 @@
     {
       "id": "anima",
       "label": "Anima support",
-      "description": "Text encoder for Anima checkpoints. Bring your own checkpoint.",
+      "description": "Text encoder and VAE for Anima checkpoints. Bring your own checkpoint.",
+      "tier": "family",
       "components": [
-        "model-text-encoder-qwen3"
+        "model-text-encoder-qwen3",
+        "model-vae-qwen-image"
       ]
     },
     {
       "id": "z-image",
       "label": "Z-Image support",
       "description": "Text encoder and VAE for Z-Image checkpoints. Bring your own checkpoint.",
+      "tier": "family",
       "components": [
         "model-text-encoder-qwen3-4b",
         "model-vae-z-image"
@@ -97,6 +91,7 @@
       "id": "krea2",
       "label": "Krea2 support",
       "description": "Text encoder and VAE for Krea2 checkpoints. Bring your own checkpoint.",
+      "tier": "family",
       "components": [
         "model-text-encoder-qwen3vl-4b",
         "model-vae-qwen-image"
