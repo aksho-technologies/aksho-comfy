@@ -23,5 +23,8 @@ The Aksho Comfy installer scripts in this repository are MIT licensed (see [LICE
 | 4x-AnimeSharp | [Kim2091](https://huggingface.co/Kim2091/AnimeSharp) | CC BY-NC-SA 4.0 | Not redistributed by Aksho: the installer downloads this file directly from the author's repository while permission for CDN hosting is requested per Kim2091's stated policy |
 | comfyui-inpaint-nodes | [Acly](https://github.com/Acly/comfyui-inpaint-nodes) | GPL-3.0 | Clear |
 | big-lama | [Samsung AI / LaMa](https://github.com/advimman/lama), packaged by [Sanster](https://github.com/Sanster/models) | Apache-2.0 | Clear |
+| Aksho Content Check node | Aksho | MIT (this repository) | Clear |
+| wd-vit-tagger-v3 | [SmilingWolf](https://huggingface.co/SmilingWolf/wd-vit-tagger-v3), revision 7f6b584d0bd3f55c4531f14ba3d4761b2bccdc0f | Apache-2.0 | Clear |
+| onnxruntime | Microsoft | MIT | Clear |
 
 CDN hosting of 4x-AnimeSharp activates only after the author's permission arrives.
