@@ -16,7 +16,12 @@
 # launch-time check reuses the saved selection. Dropping a pack stops updating it, it
 # never deletes anything already on disk.
 #
-# State: <install root>\installed.json tracks bundleVersion + chosen packs + per-component sha256.
+# Packs come in tiers: the required core, the base checkpoints (pick one or more, or
+# none to bring your own), the model support packs a checkpoint or tool runs on
+# (named in its worksWith, and ticked with it), and the tools.
+#
+# State: <install root>\installed.json tracks bundleVersion + chosen packs + per-component
+# sha256 of the components those packs hold.
 # PowerShell 5.1 compatible. Downloads via curl.exe (resume-capable), extraction via tar.exe.
 
 param(
@@ -30,7 +35,7 @@ param(
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Script:InstallerVersion = '1.1.3'
+$Script:InstallerVersion = '1.2.0'
 $Script:BaseUrl = $BaseUrl.TrimEnd('/')
 $Script:ManifestUrl = "$Script:BaseUrl/manifest.json"
 $Script:ComfyPort = 8188
@@ -92,6 +97,8 @@ function Get-PacksOnDisk([string]$root, $manifest) {
     # follows what is on disk instead of downloading every pack there is.
     $found = @()
     foreach ($pack in $manifest.packs) {
+        # A pack with nothing in it yet (a checkpoint still to come) is never on disk.
+        if (-not @($pack.components).Count) { continue }
         $complete = $true
         foreach ($id in $pack.components) {
             $c = $manifest.components | Where-Object { $_.id -eq $id } | Select-Object -First 1
@@ -113,6 +120,27 @@ function Get-SelectedComponents($manifest, $packIds) {
     return @($manifest.components | Where-Object { $wanted.Contains($_.id) })
 }
 
+function Get-MigratedSelection($manifest, $state, $packIds) {
+    # Selections saved before the base checkpoints (installer 1.2.0) carry onto
+    # the new packs. Dreamhex and the Illustrious pieces moved out of Core and the
+    # MOSS packs were split; the files never moved on disk, so nothing downloads
+    # again. A record exists only for components a chosen pack holds (see the
+    # end of Main), so a pack dropped on a later run is never brought back here.
+    $out = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($id in $packIds) {
+        switch ($id) {
+            'moss-image' { $out.Add('base-aio'); $out.Add('moss') }
+            'moss-image-lite' { $out.Add('base-aio-lite'); $out.Add('moss-lite') }
+            default { $out.Add($id) }
+        }
+    }
+    $recorded = $state.components.PSObject.Properties
+    if (-not $out.Contains('base-2-5d') -and $recorded['model-checkpoint-dreamhex-v5']) { $out.Add('base-2-5d') }
+    if (-not $out.Contains('illustrious') -and $recorded['model-ipadapter-noob']) { $out.Add('illustrious') }
+    $known = @($manifest.packs | ForEach-Object { $_.id })
+    return @($out | Where-Object { $known -contains $_ } | Select-Object -Unique)
+}
+
 # ---------------------------------------------------------------------------
 # Feature picker
 # ---------------------------------------------------------------------------
@@ -124,7 +152,7 @@ function Show-FeaturePickerGui($manifest, [string]$root, $selectedIds, [bool]$al
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'Aksho ComfyUI - choose what to install'
-    $form.Size = New-Object System.Drawing.Size(560, 700)
+    $form.Size = New-Object System.Drawing.Size(560, 780)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -134,52 +162,112 @@ function Show-FeaturePickerGui($manifest, [string]$root, $selectedIds, [bool]$al
     $form.Font = New-Object System.Drawing.Font('Segoe UI', 9)
 
     $intro = New-Object System.Windows.Forms.Label
-    $intro.Text = 'Every Atelier feature is optional except the core. Untick anything you will not use; you can add it later from Update Aksho ComfyUI.'
+    $intro.Text = 'Core is always installed. Pick at least one base checkpoint, or None to bring your own; each brings the model support it runs on. You can change all of this later from Update Aksho ComfyUI.'
+    $intro.Font = $form.Font
     $intro.Location = New-Object System.Drawing.Point(16, 12)
-    $intro.Size = New-Object System.Drawing.Size(510, 40)
+    $intro.Size = New-Object System.Drawing.Size(510, ($intro.GetPreferredSize((New-Object System.Drawing.Size(510, 0))).Height))
     $intro.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 180)
     $form.Controls.Add($intro)
 
     $panel = New-Object System.Windows.Forms.Panel
-    $panel.Location = New-Object System.Drawing.Point(12, 56)
-    $panel.Size = New-Object System.Drawing.Size(518, 462)
+    $panel.Location = New-Object System.Drawing.Point(12, ($intro.Bottom + 8))
+    $panel.Size = New-Object System.Drawing.Size(518, 540)
     $panel.AutoScroll = $true
     $panel.BorderStyle = 'FixedSingle'
     $form.Controls.Add($panel)
 
+    # A first install has no folder yet; an existing one keeps where it is.
+    $firstRun = $allowFolder
+    $packsById = @{}
+    foreach ($pack in $manifest.packs) { $packsById[$pack.id] = $pack }
+    $groups = @(
+        @{ Tiers = @('core'); Title = 'Core' },
+        @{ Tiers = @('base'); Title = 'Base checkpoint: pick one or more' },
+        @{ Tiers = @('family'); Title = 'Model support' },
+        @{ Tiers = @('recommended', 'optional'); Title = 'Tools' }
+    )
     $boxes = @{}
+    $none = $null
     $y = 8
-    foreach ($pack in $manifest.packs) {
-        $size = Get-PackSize $manifest $pack
-        $box = New-Object System.Windows.Forms.CheckBox
-        $label = if ($pack.required) { "$($pack.label)   ($(Format-Size $size))   -   always installed" }
-                 else { "$($pack.label)   ($(Format-Size $size))" }
-        $box.Text = $label
-        $box.Location = New-Object System.Drawing.Point(10, $y)
-        $box.Size = New-Object System.Drawing.Size(470, 20)
-        $box.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-        $box.ForeColor = [System.Drawing.Color]::White
-        $box.Checked = $pack.required -or ($selectedIds -contains $pack.id)
-        # AutoCheck rather than Enabled: a disabled checkbox is painted grey and
-        # reads as unavailable, when the core is simply not up for debate.
-        if ($pack.required) { $box.AutoCheck = $false }
-        $box.Tag = $pack.id
-        $panel.Controls.Add($box)
-        $boxes[$pack.id] = $box
-        $y += 21
+    foreach ($group in $groups) {
+        $members = @($manifest.packs | Where-Object { $group.Tiers -contains $_.tier })
+        if (-not $members.Count) { continue }
+        $head = New-Object System.Windows.Forms.Label
+        $head.Text = $group.Title
+        $head.Location = New-Object System.Drawing.Point(10, $y)
+        $head.Size = New-Object System.Drawing.Size(470, 20)
+        $head.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+        $head.ForeColor = [System.Drawing.Color]::FromArgb(200, 200, 210)
+        $panel.Controls.Add($head)
+        $y += 26
 
-        $desc = New-Object System.Windows.Forms.Label
-        $desc.Text = $pack.description
-        $desc.Location = New-Object System.Drawing.Point(30, $y)
-        $desc.Size = New-Object System.Drawing.Size(460, 17)
-        $desc.ForeColor = [System.Drawing.Color]::FromArgb(150, 150, 160)
-        $panel.Controls.Add($desc)
-        $y += 25
+        foreach ($pack in $members) {
+            $size = Get-PackSize $manifest $pack
+            if (-not @($pack.components).Count) {
+                # A checkpoint with nothing in it yet is shown, not offered: a
+                # plain line where its box would be. (A disabled checkbox paints
+                # its label embossed on this dark form, hard to read.)
+                $soon = New-Object System.Windows.Forms.Label
+                $soon.Text = "$($pack.label)   -   coming soon"
+                $soon.Location = New-Object System.Drawing.Point(27, ($y + 2))
+                $soon.Size = New-Object System.Drawing.Size(453, 18)
+                $soon.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+                $soon.ForeColor = [System.Drawing.Color]::FromArgb(150, 150, 160)
+                $panel.Controls.Add($soon)
+            } else {
+                $box = New-Object System.Windows.Forms.CheckBox
+                $box.Text = if ($pack.required) { "$($pack.label)   ($(Format-Size $size))   -   always installed" }
+                            else { "$($pack.label)   ($(Format-Size $size))" }
+                $box.Location = New-Object System.Drawing.Point(10, $y)
+                $box.Size = New-Object System.Drawing.Size(470, 20)
+                $box.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+                $box.ForeColor = [System.Drawing.Color]::White
+                $box.Checked = $pack.required -or ($selectedIds -contains $pack.id)
+                # AutoCheck rather than Enabled: a disabled checkbox is painted grey and
+                # reads as unavailable, when the core is simply not up for debate.
+                if ($pack.required) { $box.AutoCheck = $false }
+                $box.Tag = $pack.id
+                $panel.Controls.Add($box)
+                $boxes[$pack.id] = $box
+            }
+            $y += 21
+
+            # A tool names the models it works with.
+            $text = $pack.description
+            if ($pack.worksWith -and $pack.tier -ne 'base') {
+                $models = @($pack.worksWith | ForEach-Object { $packsById[$_].label -replace '\s+support\b', '' })
+                $text = "$text Works with $($models -join ' or ')."
+            }
+            $desc = New-Object System.Windows.Forms.Label
+            $desc.Text = $text
+            # Measured in the form's font before it joins the panel, so a long
+            # description wraps onto its own lines instead of being cut off.
+            $desc.Font = $form.Font
+            $desc.Location = New-Object System.Drawing.Point(30, $y)
+            $desc.Size = New-Object System.Drawing.Size(460, ($desc.GetPreferredSize((New-Object System.Drawing.Size(460, 0))).Height))
+            $desc.ForeColor = [System.Drawing.Color]::FromArgb(150, 150, 160)
+            $panel.Controls.Add($desc)
+            $y += $desc.Height + 8
+        }
+
+        if ($group.Tiers -contains 'base') {
+            $none = New-Object System.Windows.Forms.CheckBox
+            $none.Text = 'None, I will pick my own image checkpoint'
+            $none.Location = New-Object System.Drawing.Point(10, $y)
+            $none.Size = New-Object System.Drawing.Size(470, 20)
+            $none.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+            $none.ForeColor = [System.Drawing.Color]::White
+            # An install that already chose its packs and holds no checkpoint chose None.
+            $none.Checked = -not $firstRun -and -not @($members | Where-Object { $boxes[$_.id].Checked }).Count
+            $panel.Controls.Add($none)
+            $y += 29
+        }
+        $y += 6
     }
 
     # Fit the list to its content so a short pack list leaves no dead space and a
     # long one scrolls, then hang everything below off wherever it ended up.
-    $panel.Height = [Math]::Min(462, $y + 6)
+    $panel.Height = [Math]::Min(540, $y + 6)
     $below = $panel.Bottom + 12
 
     $total = New-Object System.Windows.Forms.Label
@@ -189,15 +277,57 @@ function Show-FeaturePickerGui($manifest, [string]$root, $selectedIds, [bool]$al
     $form.Controls.Add($total)
 
     $refreshTotal = {
-        $bytes = 0L
+        # A component two packs share downloads once, so it counts once.
+        $held = New-Object 'System.Collections.Generic.HashSet[string]'
         foreach ($pack in $manifest.packs) {
-            $box = $boxes[$pack.id]
-            if ($box.Checked) { $bytes += Get-PackSize $manifest $pack }
+            if ($boxes[$pack.id].Checked) { foreach ($id in $pack.components) { [void]$held.Add($id) } }
         }
+        $bytes = 0L
+        foreach ($c in $manifest.components) { if ($held.Contains($c.id)) { $bytes += [long]$c.sizeBytes } }
         $total.Text = "Selected: $(Format-Size $bytes) of models and extensions."
+        # Install waits for a checkpoint pick or an explicit None.
+        $ok.Enabled = (-not $none) -or $none.Checked -or [bool]@($manifest.packs | Where-Object { $_.tier -eq 'base' -and $boxes[$_.id].Checked }).Count
     }
-    foreach ($box in $boxes.Values) { $box.Add_CheckedChanged($refreshTotal) }
-    & $refreshTotal
+
+    # Ticking a checkpoint or a tool ticks the model support it runs on; unticking a
+    # model support unticks what can no longer run. On a first install a checkpoint
+    # also brings the recommended tools made for its model.
+    $ui = @{ busy = $false }
+    $onTick = {
+        param($source)
+        if ($ui.busy) { return }
+        $ui.busy = $true
+        try {
+            $pack = $packsById[$source.Tag]
+            if ($source.Checked) {
+                $supports = @($pack.worksWith | Where-Object { $_ })
+                if ($supports.Count -and -not @($supports | Where-Object { $boxes[$_].Checked }).Count) { $boxes[$supports[0]].Checked = $true }
+                if ($pack.tier -eq 'base') {
+                    $none.Checked = $false
+                    if ($firstRun) {
+                        foreach ($tool in @($manifest.packs | Where-Object { $_.tier -eq 'recommended' -and $_.worksWith })) {
+                            if (@($tool.worksWith | Where-Object { $supports -contains $_ }).Count) { $boxes[$tool.id].Checked = $true }
+                        }
+                    }
+                }
+            } elseif ($pack.tier -eq 'family') {
+                foreach ($other in $manifest.packs) {
+                    if (-not $other.worksWith -or -not $boxes[$other.id].Checked) { continue }
+                    if (-not @($other.worksWith | Where-Object { $boxes[$_].Checked }).Count) { $boxes[$other.id].Checked = $false }
+                }
+            }
+        } finally { $ui.busy = $false }
+        & $refreshTotal
+    }
+    foreach ($box in $boxes.Values) { $box.Add_CheckedChanged($onTick) }
+    if ($none) {
+        $none.Add_CheckedChanged({
+            if ($none.Checked) {
+                foreach ($pack in @($manifest.packs | Where-Object { $_.tier -eq 'base' -and $boxes[$_.id] })) { $boxes[$pack.id].Checked = $false }
+            }
+            & $refreshTotal
+        })
+    }
 
     $folderLabel = New-Object System.Windows.Forms.Label
     $folderLabel.Text = 'Install folder'
@@ -256,6 +386,7 @@ function Show-FeaturePickerGui($manifest, [string]$root, $selectedIds, [bool]$al
     $cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($cancel)
     $form.CancelButton = $cancel
+    & $refreshTotal
 
     $form.ClientSize = New-Object System.Drawing.Size(542, ($below + 142))
     if ($form.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
@@ -272,25 +403,73 @@ function Show-FeaturePickerGui($manifest, [string]$root, $selectedIds, [bool]$al
 function Show-FeaturePickerConsole($manifest, [string]$root, $selectedIds, [bool]$allowFolder) {
     Write-Host ''
     Write-Info 'Choose what to install (Enter keeps the shown answer):'
-    $chosen = @()
+    $firstRun = $allowFolder
+    $packsById = @{}
+    foreach ($pack in $manifest.packs) { $packsById[$pack.id] = $pack }
+    $chosen = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($pack in @($manifest.packs | Where-Object { $_.required })) {
+        Write-Host "  [x] $($pack.label) ($(Format-Size (Get-PackSize $manifest $pack))) - required"
+        $chosen.Add($pack.id)
+    }
+
+    # Base checkpoints: one or more by number, or 0 to bring your own.
+    $bases = @($manifest.packs | Where-Object { $_.tier -eq 'base' -and @($_.components).Count })
+    if ($bases.Count) {
+        Write-Host '  Base checkpoints (pick one or more, or 0 for none and bring your own):'
+        for ($i = 0; $i -lt $bases.Count; $i++) {
+            Write-Host "    $($i + 1)) $($bases[$i].label) ($(Format-Size (Get-PackSize $manifest $bases[$i]))) - $($bases[$i].description)"
+        }
+        $picked = @(for ($i = 0; $i -lt $bases.Count; $i++) { if ($selectedIds -contains $bases[$i].id) { $i + 1 } })
+        $default = if ($picked.Count) { $picked -join ',' } elseif ($firstRun) { '' } else { '0' }
+        while ($true) {
+            $answer = Read-Host "  Base checkpoints [$default]"
+            if (-not $answer) { $answer = $default }
+            $numbers = @($answer -split '[,\s]+' | Where-Object { $_ })
+            if ($numbers.Count -eq 1 -and $numbers[0] -eq '0') { break }
+            $valid = @($numbers | Where-Object { $_ -match '^\d+$' -and [int]$_ -ge 1 -and [int]$_ -le $bases.Count })
+            if ($valid.Count -and $valid.Count -eq $numbers.Count) {
+                foreach ($n in $valid) { $chosen.Add($bases[[int]$n - 1].id) }
+                break
+            }
+            Write-Host '  Type the numbers of the checkpoints you want, separated by commas, or 0 for none.'
+        }
+    }
+    # Each checkpoint brings the model support it runs on.
+    $supports = @($chosen | ForEach-Object { $packsById[$_].worksWith } | Where-Object { $_ } | Select-Object -Unique)
+
     foreach ($pack in $manifest.packs) {
+        if ($pack.required -or $pack.tier -eq 'base' -or -not @($pack.components).Count) { continue }
         $size = Format-Size (Get-PackSize $manifest $pack)
-        if ($pack.required) {
-            Write-Host "  [x] $($pack.label) ($size) - required"
-            $chosen += $pack.id
+        if ($supports -contains $pack.id) {
+            Write-Host "  [x] $($pack.label) ($size) - your checkpoint runs on it"
+            $chosen.Add($pack.id)
             continue
         }
-        $default = if ($selectedIds -contains $pack.id) { 'Y' } else { 'N' }
-        Write-Host "      $($pack.description)"
+        # On a first install the recommended tools made for a picked model come along.
+        $forPicked = $firstRun -and $pack.tier -eq 'recommended' -and @($pack.worksWith | Where-Object { $chosen.Contains($_) }).Count
+        $default = if (($selectedIds -contains $pack.id) -or $forPicked) { 'Y' } else { 'N' }
+        $text = $pack.description
+        if ($pack.worksWith) {
+            $models = @($pack.worksWith | ForEach-Object { $packsById[$_].label -replace '\s+support\b', '' })
+            $text = "$text Works with $($models -join ' or ')."
+        }
+        Write-Host "      $text"
         $answer = Read-Host "  $($pack.label) ($size)? [$default]"
         if (-not $answer) { $answer = $default }
-        if ($answer.Trim().ToLowerInvariant().StartsWith('y')) { $chosen += $pack.id }
+        if (-not $answer.Trim().ToLowerInvariant().StartsWith('y')) { continue }
+        $chosen.Add($pack.id)
+        # A tool brings the model support it runs on, when none of its own is in yet.
+        $needs = @($pack.worksWith | Where-Object { $_ })
+        if ($needs.Count -and -not @($needs | Where-Object { $chosen.Contains($_) }).Count) {
+            Write-Host "  [x] $($packsById[$needs[0]].label) - $($pack.label) runs on it"
+            $chosen.Add($needs[0])
+        }
     }
     if ($allowFolder) {
         $answer = Read-Host "Install folder [$root]"
         if ($answer) { $root = $answer.Trim() }
     }
-    return @{ Root = $root; Packs = $chosen }
+    return @{ Root = $root; Packs = @($chosen | Select-Object -Unique) }
 }
 
 function Show-FeaturePicker($manifest, [string]$root, $selectedIds, [bool]$allowFolder) {
@@ -580,18 +759,22 @@ if ($UpdateCheck) {
 # stray "False" printed in the middle of the run.
 $null = Invoke-SelfUpdate $root $manifest
 
-# Everything is ticked on a first run; afterwards the saved selection is the default.
+# A first run ticks the tools that work with every model; the checkpoint picked in
+# the picker brings its model support and the tools made for it. Afterwards the
+# saved selection is the default.
 # A single-element array survives a JSON round trip as a bare string, hence the @().
 # Nulls are dropped: a state file written as "packs": [ null ] read as one chosen
 # pack that matched nothing, so every optional pack silently stopped updating.
+$firstRunPacks = @($manifest.packs | Where-Object { $_.tier -eq 'recommended' -and -not $_.worksWith } | ForEach-Object { $_.id })
 $selected = @($state.packs | Where-Object { $_ })
 if ($isFresh) {
-    $selected = @($manifest.packs | ForEach-Object { $_.id })
+    $selected = $firstRunPacks
 } elseif ($selected.Count -eq 0) {
     $selected = @(Get-PacksOnDisk $root $manifest)
-    if ($selected.Count -eq 0) { $selected = @($manifest.packs | ForEach-Object { $_.id }) }
+    if ($selected.Count -eq 0) { $selected = $firstRunPacks }
     Write-Info "No pack selection on record; keeping the packs found on disk: $($selected -join ', ')"
 }
+$selected = @(Get-MigratedSelection $manifest $state $selected)
 
 if (-not $UpdateCheck) {
     $choice = Show-FeaturePicker $manifest $root $selected (-not (Test-Path (Join-Path $root 'installed.json')))
@@ -607,7 +790,8 @@ New-Item -ItemType Directory -Force -Path $root | Out-Null
 $components = Get-SelectedComponents $manifest $selected
 Invoke-RenameMigrations $root $components
 
-$needed = Get-ComponentsToInstall $root $components $state
+# @() keeps a single component an array, so its count reads right.
+$needed = @(Get-ComponentsToInstall $root $components $state)
 if ($needed.Count -eq 0) {
     Write-Info "Everything is up to date (bundle $($manifest.bundleVersion))."
 } else {
@@ -643,6 +827,14 @@ if (-not $state.PSObject.Properties['packs']) {
     $state | Add-Member -NotePropertyName packs -NotePropertyValue @() -Force
 }
 $state.packs = $selected
+# Only the components the chosen packs hold stay on record. A dropped pack's
+# files stay on disk, untracked, so a later run never reads them as a choice;
+# picking the pack again adopts them by hash instead of downloading them.
+$held = @{}
+foreach ($c in $components) { $held[$c.id] = $true }
+foreach ($name in @($state.components.PSObject.Properties | ForEach-Object { $_.Name })) {
+    if (-not $held[$name]) { $state.components.PSObject.Properties.Remove($name) }
+}
 Save-InstalledState $root $state
 Write-Launchers $root
 $downloadsDir = Join-Path $root '_downloads'

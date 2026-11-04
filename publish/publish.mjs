@@ -191,6 +191,21 @@ async function cmdPublish() {
     console.error(`[PUBLISH] Refusing to publish - components without sha256/sizeBytes: ${empty.map((c) => c.id).join(', ')}`)
     process.exit(1)
   }
+  // The same pack rules CI holds manifest.json to (validate-manifest.yml).
+  const componentIds = new Set(manifest.components.map((c) => c.id))
+  const used = new Set(manifest.packs.flatMap((p) => p.components))
+  const packProblems = [
+    ...manifest.packs.filter((p) => !['core', 'base', 'family', 'recommended', 'optional'].includes(p.tier)).map((p) => `pack ${p.id} has tier ${p.tier}`),
+    ...manifest.packs.filter((p) => p.tier === 'base' && p.required).map((p) => `base pack ${p.id} is marked required`),
+    ...manifest.packs.flatMap((p) => p.components.filter((id) => !componentIds.has(id)).map((id) => `pack ${p.id} names unknown component ${id}`)),
+    ...manifest.packs.flatMap((p) => (p.worksWith ?? []).filter((s) => manifest.packs.find((q) => q.id === s)?.tier !== 'family').map((s) => `pack ${p.id} works with ${s}, which is not a model support pack`)),
+    ...manifest.components.filter((c) => !used.has(c.id)).map((c) => `component ${c.id} is in no pack`),
+  ]
+  if (packProblems.length) {
+    console.error('[PUBLISH] Refusing to publish - the packs do not hold together:')
+    for (const line of packProblems) console.error(`  ${line}`)
+    process.exit(1)
+  }
 
   // Purge before verifying: a component replaced this session would otherwise
   // be checked against the copy the CDN is still holding.

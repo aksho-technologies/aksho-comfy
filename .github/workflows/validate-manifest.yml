@@ -35,5 +35,32 @@ jobs:
               if (typeof c.sha256 !== "string") fail(`bad sha256 on ${c.id}`);
               if (typeof c.sizeBytes !== "number") fail(`bad sizeBytes on ${c.id}`);
             }
-            console.log(`manifest OK: bundle ${m.bundleVersion}, ${m.components.length} components`);
+            // Packs: what the pickers show. A base pack is a checkpoint people
+            // pick (one or more, or none); it is never required, since every
+            // consumer reads required as "always install". worksWith names the
+            // model support packs a checkpoint or a tool runs on.
+            if (!Array.isArray(m.packs) || !m.packs.length) fail("missing packs");
+            const tiers = ["core", "base", "family", "recommended", "optional"];
+            const packIds = new Set();
+            const used = new Set();
+            for (const p of m.packs) {
+              if (!p.id || !p.label) fail(`pack missing id or label: ${JSON.stringify(p)}`);
+              if (packIds.has(p.id)) fail(`duplicate pack ${p.id}`);
+              packIds.add(p.id);
+              if (!tiers.includes(p.tier)) fail(`bad tier on pack ${p.id}`);
+              if (p.tier === "base" && p.required) fail(`base pack ${p.id} must not be required`);
+              if (!Array.isArray(p.components)) fail(`pack ${p.id} has no components list`);
+              for (const id of p.components) {
+                if (!ids.has(id)) fail(`pack ${p.id} names unknown component ${id}`);
+                used.add(id);
+              }
+            }
+            for (const p of m.packs) {
+              for (const s of p.worksWith ?? []) {
+                const support = m.packs.find((q) => q.id === s);
+                if (!support || support.tier !== "family") fail(`pack ${p.id} works with ${s}, which is not a model support pack`);
+              }
+            }
+            for (const c of m.components) if (!used.has(c.id)) fail(`component ${c.id} is in no pack`);
+            console.log(`manifest OK: bundle ${m.bundleVersion}, ${m.components.length} components, ${m.packs.length} packs`);
           '

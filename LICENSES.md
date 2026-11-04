@@ -14,6 +14,9 @@ The Aksho Comfy installer scripts in this repository are MIT licensed (see [LICE
 | clip_l / clip_g | OpenAI CLIP ViT-L/14 and LAION CLIP ViT-bigG/14 text towers, the same encoders already inside every SDXL checkpoint | MIT (both upstream) | Clear |
 | qwen_3_06b_base, qwen_3_4b_fp8_mixed, qwen3vl_4b_fp8_scaled | Qwen (Alibaba), repackaged for ComfyUI | Apache-2.0 upstream | Provenance of the repackaged files not yet recorded; confirm before the next publish |
 | z_image_ae, qwen_image_vae | Z-Image and Qwen-Image autoencoders | Not yet confirmed | Confirm before the next publish |
+| moss_image_sft_bf16, moss_image_sft_int8_convrot | MOSS Image SFT by [OpenMOSS](https://github.com/OpenMOSS/MOSS-Image), repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MOSS-Image) | Apache-2.0 | Clear |
+| qwen3.5_9b_bf16, qwen3.5_9b_w4a8_gptq | Qwen3.5-9B by Qwen (Alibaba), repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MOSS-Image) | Apache-2.0 | Clear |
+| flux2-vae_small | FLUX.2 small decoder by Black Forest Labs, repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MOSS-Image) | Apache-2.0 | Clear |
 | Dreamhex v5 checkpoint | Vetehine | Redistributed with the author's permission | Clear |
 | ip_adapter_Noobtest_800000 | [kataragi](https://huggingface.co/kataragi/Noob_ipadapter) | CreativeML OpenRAIL-M | Clear (use-based restrictions carry to users) |
 | CLIP-ViT-H-14-laion2B-s32B-b79K | LAION / OpenCLIP | MIT | Clear |

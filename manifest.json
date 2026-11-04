@@ -1,6 +1,6 @@
 {
-  "bundleVersion": "2026.10.26-1",
-  "installerVersion": "1.1.3",
+  "bundleVersion": "2026.11.03-1",
+  "installerVersion": "1.2.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
   "basePipPackages": [
@@ -14,7 +14,7 @@
     {
       "id": "core",
       "label": "Core",
-      "description": "Everything you need to start generating, with face cleanup and the anime upscaler.",
+      "description": "ComfyUI and the Aksho pieces every picture runs on.",
       "required": true,
       "tier": "core",
       "components": [
@@ -23,8 +23,71 @@
         "ext-aksho-content-check",
         "model-wd-vit-tagger-v3",
         "model-wd-vit-tagger-v3-tags",
-        "aksho-relay-agent",
-        "model-checkpoint-dreamhex-v5",
+        "aksho-relay-agent"
+      ]
+    },
+    {
+      "id": "base-anime",
+      "label": "Anime",
+      "description": "Clean anime art from an Anima checkpoint.",
+      "tier": "base",
+      "worksWith": [
+        "anima"
+      ],
+      "components": []
+    },
+    {
+      "id": "base-2-5d",
+      "label": "2.5D",
+      "description": "Dreamhex: anime characters with depth, soft shading and rich light. An Illustrious checkpoint.",
+      "tier": "base",
+      "worksWith": [
+        "illustrious"
+      ],
+      "components": [
+        "model-checkpoint-dreamhex-v5"
+      ]
+    },
+    {
+      "id": "base-realistic",
+      "label": "Realistic",
+      "description": "Pictures that look like photographs, from a Krea2 checkpoint.",
+      "tier": "base",
+      "worksWith": [
+        "krea2"
+      ],
+      "components": []
+    },
+    {
+      "id": "base-aio",
+      "label": "All in One",
+      "description": "MOSS Image: one model for any style, realistic, anime or painterly. For 24 GB cards and Cloud GPU rigs.",
+      "tier": "base",
+      "worksWith": [
+        "moss"
+      ],
+      "components": [
+        "model-moss-image-sft"
+      ]
+    },
+    {
+      "id": "base-aio-lite",
+      "label": "All in One Lite",
+      "description": "The same MOSS Image model made smaller to run on 8 GB cards.",
+      "tier": "base",
+      "worksWith": [
+        "moss-lite"
+      ],
+      "components": [
+        "model-moss-image-sft-int8"
+      ]
+    },
+    {
+      "id": "illustrious",
+      "label": "Illustrious support",
+      "description": "Image Reference, face and hand cleanup and the anime upscaler, for Illustrious checkpoints.",
+      "tier": "family",
+      "components": [
         "ext-ipadapter-plus",
         "model-clip-vision-vith",
         "model-ipadapter-noob",
@@ -36,38 +99,23 @@
       ]
     },
     {
-      "id": "poser",
-      "label": "3D Poser",
-      "description": "Pose a 3D figure and generate from the skeleton or its depth map.",
-      "tier": "recommended",
+      "id": "moss",
+      "label": "MOSS support",
+      "description": "Text encoder and VAE for MOSS Image at full size.",
+      "tier": "family",
       "components": [
-        "model-controlnet-openpose",
-        "model-controlnet-depth"
+        "model-text-encoder-qwen35-9b",
+        "model-vae-flux2-small"
       ]
     },
     {
-      "id": "inpaint",
-      "label": "Inpaint",
-      "description": "Paint a mask and regenerate, fill or erase inside it.",
-      "tier": "recommended",
+      "id": "moss-lite",
+      "label": "MOSS support Lite",
+      "description": "Text encoder and VAE for MOSS Image Lite, sized for 8 GB cards.",
+      "tier": "family",
       "components": [
-        "ext-inpaint-nodes",
-        "ext-impact-pack",
-        "model-inpaint-lama"
-      ]
-    },
-    {
-      "id": "multi",
-      "label": "Multi-Character",
-      "description": "Place several hosts on a grid and keep each one's identity in its own region.",
-      "tier": "optional",
-      "beta": true,
-      "components": [
-        "ext-res4lyf",
-        "ext-gligen-xl",
-        "model-gligen-xl",
-        "model-clip-l",
-        "model-clip-g"
+        "model-text-encoder-qwen35-9b-w4a8",
+        "model-vae-flux2-small"
       ]
     },
     {
@@ -99,13 +147,38 @@
         "model-text-encoder-qwen3vl-4b",
         "model-vae-qwen-image"
       ]
+    },
+    {
+      "id": "poser",
+      "label": "3D Poser",
+      "description": "Pose a 3D figure and generate from the skeleton or its depth map.",
+      "tier": "recommended",
+      "components": [
+        "model-controlnet-openpose",
+        "model-controlnet-depth"
+      ],
+      "worksWith": [
+        "illustrious"
+      ]
+    },
+    {
+      "id": "inpaint",
+      "label": "Inpaint",
+      "description": "Paint a mask and erase inside it on any model, or regenerate and fill it on Illustrious.",
+      "tier": "recommended",
+      "components": [
+        "ext-inpaint-nodes",
+        "ext-impact-pack",
+        "model-inpaint-lama",
+        "model-upscale-4x-animesharp"
+      ]
     }
   ],
   "components": [
     {
       "id": "comfyui-portable",
       "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/comfyui/comfyui-portable.zip",
+      "url": "https://dl.akshoai.com/comfyui/comfyui-portable-v0.43.0.zip",
       "targetPath": ".",
       "replaces": [
         "python_embeded",
@@ -119,8 +192,8 @@
         "ComfyUI/output",
         "ComfyUI/temp"
       ],
-      "sha256": "ca0ceffd764b37ac4ae767715c2fdcf634ff6bf0f773e4950137fd3c81dd65b1",
-      "sizeBytes": 2616106448,
+      "sha256": "485f8f8cd0aef770559a62f8ac9c1a2e5fb06e6c44257a165bb78ab38a09fb56",
+      "sizeBytes": 2675450288,
       "sourceVersion": "v0.38.0"
     },
     {
@@ -128,8 +201,8 @@
       "kind": "archive-extract",
       "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-ModelInfo.zip",
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-ModelInfo",
-      "sha256": "e6f2963e7ff06456b4bcae7ad65a135893a68b515455f217b40a6e1f2de60f26",
-      "sizeBytes": 2634
+      "sha256": "c99ed50395c8c6cf0db977476ce515f299f68a6ef08c1d951e942dc2c76161e3",
+      "sizeBytes": 3913
     },
     {
       "id": "ext-aksho-content-check",
@@ -220,50 +293,6 @@
       "targetPath": "ComfyUI/models/controlnet/controlnet-depth-illustrious.safetensors",
       "sha256": "806fcb75876fa08c684157f1fef9deb423b70c38534e8c629ff2069477e7dd8b",
       "sizeBytes": 2502139136
-    },
-    {
-      "id": "ext-res4lyf",
-      "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/extensions/RES4LYF.zip",
-      "targetPath": "ComfyUI/custom_nodes/RES4LYF",
-      "sha256": "4e77277a39860c221d67819aa455f766daea39979a688514ec8afa543c1624ee",
-      "sizeBytes": 561455,
-      "postInstall": {
-        "pipRequirements": "requirements.txt"
-      },
-      "pinnedCommit": "022c873c6d19"
-    },
-    {
-      "id": "ext-gligen-xl",
-      "kind": "archive-extract",
-      "url": "https://dl.akshoai.com/extensions/gligen-xl.zip",
-      "targetPath": "ComfyUI/custom_nodes/gligen-xl",
-      "sha256": "f213db40c063a867ff34092747ed86f3447ce4ea54793f5c61dc141c0e3ddb5e",
-      "sizeBytes": 3283
-    },
-    {
-      "id": "model-gligen-xl",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/gligen-xl-1024-fp16.safetensors",
-      "targetPath": "ComfyUI/models/gligen/gligen-xl-1024-fp16.safetensors",
-      "sha256": "54717388ab4bd65a652d838b935f7a7d38897b623f2706e652dc8592798c98aa",
-      "sizeBytes": 3625045920
-    },
-    {
-      "id": "model-clip-l",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/clip_l.safetensors",
-      "targetPath": "ComfyUI/models/clip/clip_l.safetensors",
-      "sha256": "660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd",
-      "sizeBytes": 246144152
-    },
-    {
-      "id": "model-clip-g",
-      "kind": "file",
-      "url": "https://dl.akshoai.com/models/clip_g.safetensors",
-      "targetPath": "ComfyUI/models/clip/clip_g.safetensors",
-      "sha256": "ec310df2af79c318e24d20511b601a591ca8cd4f1fce1d8dff822a356bcdb1f4",
-      "sizeBytes": 1389382176
     },
     {
       "id": "ext-inpaint-nodes",
@@ -373,6 +402,46 @@
       "targetPath": "ComfyUI/models/vae/qwen_image_vae.safetensors",
       "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
       "sizeBytes": 253806246
+    },
+    {
+      "id": "model-moss-image-sft",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/moss_image_sft_bf16.safetensors",
+      "targetPath": "ComfyUI/models/diffusion_models/moss_image_sft_bf16.safetensors",
+      "sha256": "f96738d8116d78b7316b57c663d8c98591ddafab7488f48e3099b7655e34ab6f",
+      "sizeBytes": 10164655808
+    },
+    {
+      "id": "model-text-encoder-qwen35-9b",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/qwen3.5_9b_bf16.safetensors",
+      "targetPath": "ComfyUI/models/text_encoders/qwen3.5_9b_bf16.safetensors",
+      "sha256": "7e6e9f08d598f829cb940e60ac0c698e1f1c27a47daffd7e598cd78c78b4cc53",
+      "sizeBytes": 19306312328
+    },
+    {
+      "id": "model-vae-flux2-small",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/flux2-vae_small.safetensors",
+      "targetPath": "ComfyUI/models/vae/flux2-vae_small.safetensors",
+      "sha256": "d8d52ba036475f5fb07c8b435e176d3d97ebfa82f0d1a1c317f9cc1e25bd013b",
+      "sizeBytes": 249521340
+    },
+    {
+      "id": "model-moss-image-sft-int8",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/moss_image_sft_int8_convrot.safetensors",
+      "targetPath": "ComfyUI/models/diffusion_models/moss_image_sft_int8_convrot.safetensors",
+      "sha256": "b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f",
+      "sizeBytes": 5413698958
+    },
+    {
+      "id": "model-text-encoder-qwen35-9b-w4a8",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/qwen3.5_9b_w4a8_gptq.safetensors",
+      "targetPath": "ComfyUI/models/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
+      "sha256": "4cc6a1543ad2061806da46f35f90cadb4801dcba246c44782cf42ec0feb6407c",
+      "sizeBytes": 7343591088
     }
   ]
 }
