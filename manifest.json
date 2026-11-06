@@ -27,14 +27,29 @@
       ]
     },
     {
-      "id": "base-anime",
-      "label": "Anime",
-      "description": "Clean anime art from an Anima checkpoint.",
+      "id": "base-aio-lite",
+      "label": "All in One Lite",
+      "description": "MOSS Image: one model for any style, realistic, anime or painterly, with Turbo built in. Runs on 8 GB cards and Cloud GPU rigs.",
       "tier": "base",
       "worksWith": [
-        "anima"
+        "moss-lite"
       ],
-      "components": []
+      "components": [
+        "model-moss-image-sft-int8",
+        "model-lora-moss-turbo"
+      ]
+    },
+    {
+      "id": "base-aio",
+      "label": "All in One Full",
+      "description": "The uncompressed MOSS Image model, for 24 GB cards and Cloud GPU rigs.",
+      "tier": "base",
+      "worksWith": [
+        "moss"
+      ],
+      "components": [
+        "model-moss-image-sft"
+      ]
     },
     {
       "id": "base-2-5d",
@@ -49,6 +64,16 @@
       ]
     },
     {
+      "id": "base-anime",
+      "label": "Anime",
+      "description": "Clean anime art from an Anima checkpoint.",
+      "tier": "base",
+      "worksWith": [
+        "anima"
+      ],
+      "components": []
+    },
+    {
       "id": "base-realistic",
       "label": "Realistic",
       "description": "Pictures that look like photographs, from a Krea2 checkpoint.",
@@ -57,30 +82,6 @@
         "krea2"
       ],
       "components": []
-    },
-    {
-      "id": "base-aio",
-      "label": "All in One",
-      "description": "MOSS Image: one model for any style, realistic, anime or painterly. For 24 GB cards and Cloud GPU rigs.",
-      "tier": "base",
-      "worksWith": [
-        "moss"
-      ],
-      "components": [
-        "model-moss-image-sft"
-      ]
-    },
-    {
-      "id": "base-aio-lite",
-      "label": "All in One Lite",
-      "description": "The same MOSS Image model made smaller to run on 8 GB cards.",
-      "tier": "base",
-      "worksWith": [
-        "moss-lite"
-      ],
-      "components": [
-        "model-moss-image-sft-int8"
-      ]
     },
     {
       "id": "illustrious",
@@ -116,6 +117,18 @@
       "components": [
         "model-text-encoder-qwen35-9b-w4a8",
         "model-vae-flux2-small"
+      ]
+    },
+    {
+      "id": "moss-turbo",
+      "label": "MOSS Turbo",
+      "description": "The 8-step Turbo LoRA for All in One Full: pictures in 8 steps at CFG 1. Built into All in One Lite.",
+      "tier": "optional",
+      "worksWith": [
+        "moss"
+      ],
+      "components": [
+        "model-lora-moss-turbo"
       ]
     },
     {
@@ -434,6 +447,14 @@
       "targetPath": "ComfyUI/models/diffusion_models/moss_image_sft_int8_convrot.safetensors",
       "sha256": "b4d1475bc7eeffd7b809e82ea13a1fba1fb85c4e18365af3813722faa5c0fe4f",
       "sizeBytes": 5413698958
+    },
+    {
+      "id": "model-lora-moss-turbo",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/lodestones-8-steps-dmd2-lora.safetensors",
+      "targetPath": "ComfyUI/models/loras/lodestones-8-steps-dmd2-lora.safetensors",
+      "sha256": "7683fe1fb51f73f5d690f24dd6b7f46f31ab9a9873729a854ac5c9a420ffe6f2",
+      "sizeBytes": 1189176800
     },
     {
       "id": "model-text-encoder-qwen35-9b-w4a8",

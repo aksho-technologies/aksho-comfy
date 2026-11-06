@@ -473,6 +473,14 @@ function Show-FeaturePickerConsole($manifest, [string]$root, $selectedIds, [bool
 }
 
 function Show-FeaturePicker($manifest, [string]$root, $selectedIds, [bool]$allowFolder) {
+    # A first install starts on All in One Lite with its model support ticked
+    # (CEO 2026-11-05), so Enter or OK lands on it; every other pick stays one
+    # click away. A run that already chose a checkpoint keeps its own picks.
+    if ($allowFolder) {
+        $lite = $manifest.packs | Where-Object { $_.id -eq 'base-aio-lite' -and @($_.components).Count } | Select-Object -First 1
+        $hasBase = @($manifest.packs | Where-Object { $_.tier -eq 'base' -and (@($selectedIds) -contains $_.id) }).Count
+        if ($lite -and -not $hasBase) { $selectedIds = @(@($selectedIds) + 'base-aio-lite' + @($lite.worksWith | Select-Object -First 1)) }
+    }
     try {
         return Show-FeaturePickerGui $manifest $root $selectedIds $allowFolder
     } catch {
