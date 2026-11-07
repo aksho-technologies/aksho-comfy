@@ -266,8 +266,13 @@ function Show-FeaturePickerGui($manifest, [string]$root, $selectedIds, [bool]$al
     }
 
     # Fit the list to its content so a short pack list leaves no dead space and a
-    # long one scrolls, then hang everything below off wherever it ended up.
-    $panel.Height = [Math]::Min(540, $y + 6)
+    # long one scrolls, then hang everything below off wherever it ended up. The
+    # window never outgrows the screen it opens on: a 1080p laptop at 150% scaling
+    # has about 700 px, and Install and Cancel sat under the taskbar.
+    $work = [System.Windows.Forms.Screen]::FromPoint([System.Windows.Forms.Control]::MousePosition).WorkingArea
+    $frame = [Math]::Max(30, $form.Height - $form.ClientSize.Height)
+    $room = $work.Height - $frame - 16 - $panel.Top - 12 - 142
+    $panel.Height = [Math]::Max(160, [Math]::Min([Math]::Min(540, $y + 6), $room))
     $below = $panel.Bottom + 12
 
     $total = New-Object System.Windows.Forms.Label
@@ -472,11 +477,12 @@ function Show-FeaturePickerConsole($manifest, [string]$root, $selectedIds, [bool
     return @{ Root = $root; Packs = @($chosen | Select-Object -Unique) }
 }
 
-function Show-FeaturePicker($manifest, [string]$root, $selectedIds, [bool]$allowFolder) {
-    # A first install starts on All in One Lite with its model support ticked
-    # (CEO 2026-11-05), so Enter or OK lands on it; every other pick stays one
-    # click away. A run that already chose a checkpoint keeps its own picks.
-    if ($allowFolder) {
+function Show-FeaturePicker($manifest, [string]$root, $selectedIds, [bool]$allowFolder, [bool]$startOnLite) {
+    # While nothing is chosen yet, the intended model, All in One Lite, starts
+    # ticked with its model support (CEO 2026-11-05 and 2026-11-07), so Enter or OK
+    # lands on it. It is never forced: every other pick, None included, stays one
+    # click away, and an install that already chose keeps its own picks.
+    if ($startOnLite) {
         $lite = $manifest.packs | Where-Object { $_.id -eq 'base-aio-lite' -and @($_.components).Count } | Select-Object -First 1
         $hasBase = @($manifest.packs | Where-Object { $_.tier -eq 'base' -and (@($selectedIds) -contains $_.id) }).Count
         if ($lite -and -not $hasBase) { $selectedIds = @(@($selectedIds) + 'base-aio-lite' + @($lite.worksWith | Select-Object -First 1)) }
@@ -735,6 +741,10 @@ $root = Resolve-ExistingRoot
 $isFresh = -not $root
 if ($isFresh) { $root = $Script:DefaultRoot }
 $state = Get-InstalledState $root
+# install.bat runs this script from %TEMP%, where Resolve-ExistingRoot cannot see
+# an install in the default folder; its own record can. Running install.bat again
+# over an existing install starts from the packs it saved, never from scratch.
+if ($isFresh -and (Test-Path (Join-Path $root 'installed.json'))) { $isFresh = $false }
 
 # Every run is logged next to the installer, so a failed update can be read
 # back instead of retold. The log is overwritten per run; it is not history.
@@ -785,12 +795,26 @@ if ($isFresh) {
 $selected = @(Get-MigratedSelection $manifest $state $selected)
 
 if (-not $UpdateCheck) {
-    $choice = Show-FeaturePicker $manifest $root $selected (-not (Test-Path (Join-Path $root 'installed.json')))
+    # Nothing chosen yet: a first install, or one stopped before it saved its
+    # picks. Both start alike, on the tools that work with every model and the
+    # intended model (Show-FeaturePicker).
+    $startOnLite = $isFresh -or -not @($state.packs | Where-Object { $_ }).Count
+    if ($startOnLite) { $selected = @(@($selected) + $firstRunPacks | Select-Object -Unique) }
+    $choice = Show-FeaturePicker $manifest $root $selected (-not (Test-Path (Join-Path $root 'installed.json'))) $startOnLite
     if (-not $choice) { Write-Info 'Cancelled.'; exit 0 }
     $selected = @($choice.Packs)
     if ($choice.Root -ne $root) {
         $root = $choice.Root
         $state = Get-InstalledState $root
+        # The folder picked already holds an install (one outside the default
+        # folder, which a run from %TEMP% cannot see): show its own picks before
+        # anything changes, so it is never set up again from scratch.
+        $saved = @($state.packs | Where-Object { $_ })
+        if ($saved.Count) {
+            $choice = Show-FeaturePicker $manifest $root @(Get-MigratedSelection $manifest $state $saved) $false $false
+            if (-not $choice) { Write-Info 'Cancelled.'; exit 0 }
+            $selected = @($choice.Packs)
+        }
     }
 }
 

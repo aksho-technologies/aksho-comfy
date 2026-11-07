@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.11.03-1",
+  "bundleVersion": "2026.11.07-1",
   "installerVersion": "1.2.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -29,7 +29,7 @@
     {
       "id": "base-aio-lite",
       "label": "All in One Lite",
-      "description": "MOSS Image: one model for any style, realistic, anime or painterly, with Turbo built in. Runs on 8 GB cards and Cloud GPU rigs.",
+      "description": "The intended model to use: MOSS Image, one model for any style, realistic, anime or painterly, with Turbo built in. Runs on 8 GB cards and Cloud GPU rigs.",
       "tier": "base",
       "worksWith": [
         "moss-lite"
@@ -125,7 +125,8 @@
       "description": "The 8-step Turbo LoRA for All in One Full: pictures in 8 steps at CFG 1. Built into All in One Lite.",
       "tier": "optional",
       "worksWith": [
-        "moss"
+        "moss",
+        "moss-lite"
       ],
       "components": [
         "model-lora-moss-turbo"
