@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.11.07-1",
+  "bundleVersion": "2026.11.15-1",
   "installerVersion": "1.2.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -21,6 +21,7 @@
         "comfyui-portable",
         "ext-aksho-modelinfo",
         "ext-aksho-content-check",
+        "ext-aksho-repaint",
         "model-wd-vit-tagger-v3",
         "model-wd-vit-tagger-v3-tags",
         "aksho-relay-agent"
@@ -165,13 +166,16 @@
     {
       "id": "poser",
       "label": "3D Poser",
-      "description": "Pose a 3D figure and generate from the skeleton or its depth map.",
+      "description": "Pose a 3D figure and generate from it: MOSS follows the skeleton, Illustrious the skeleton or its depth map.",
       "tier": "recommended",
       "components": [
+        "model-lora-moss-pose",
         "model-controlnet-openpose",
         "model-controlnet-depth"
       ],
       "worksWith": [
+        "moss-lite",
+        "moss",
         "illustrious"
       ]
     },
@@ -228,6 +232,14 @@
       "postInstall": {
         "pipRequirements": "requirements.txt"
       }
+    },
+    {
+      "id": "ext-aksho-repaint",
+      "kind": "archive-extract",
+      "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-Repaint.zip",
+      "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-Repaint",
+      "sha256": "d73c7256e5f6067d4d5d8eca1d1930fe647eb221944bf695ce6993d0a1d173dc",
+      "sizeBytes": 4399
     },
     {
       "id": "model-wd-vit-tagger-v3",
@@ -464,6 +476,14 @@
       "targetPath": "ComfyUI/models/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
       "sha256": "4cc6a1543ad2061806da46f35f90cadb4801dcba246c44782cf42ec0feb6407c",
       "sizeBytes": 7343591088
+    },
+    {
+      "id": "model-lora-moss-pose",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/moss_image_sft_pose_control_lora.safetensors",
+      "targetPath": "ComfyUI/models/loras/moss_image_sft_pose_control_lora.safetensors",
+      "sha256": "2063c9bff0563d256cadf4bd02c185a2622aa2746ca60e1fc2daa40457d9c732",
+      "sizeBytes": 290254336
     }
   ]
 }

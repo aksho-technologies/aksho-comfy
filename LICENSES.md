@@ -18,6 +18,7 @@ The Aksho Comfy installer scripts in this repository are MIT licensed (see [LICE
 | qwen3.5_9b_bf16, qwen3.5_9b_w4a8_gptq | Qwen3.5-9B by Qwen (Alibaba), repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MOSS-Image) | Apache-2.0 | Clear |
 | flux2-vae_small | FLUX.2 small decoder by Black Forest Labs, repackaged by [Comfy-Org](https://huggingface.co/Comfy-Org/MOSS-Image) | Apache-2.0 | Clear |
 | lodestones-8-steps-dmd2-lora | kromoss 8-step DMD2 v2 by tsolful ([Civitai 3006599](https://civitai.com/models/3006599)) | Civitai permissions: use without crediting the creator; sell images, run on generation services, sell the model and merges; share merges under other permissions | Clear |
+| moss_image_sft_pose_control_lora | MOSS Image pose control LoRA by [thedeoxen](https://huggingface.co/thedeoxen/MOSS-Image-pose-controlnet), an adapter on OpenMOSS-Team/MOSS-Image-SFT | Apache-2.0 | Clear |
 | Dreamhex v5 checkpoint | Vetehine | Redistributed with the author's permission | Clear |
 | ip_adapter_Noobtest_800000 | [kataragi](https://huggingface.co/kataragi/Noob_ipadapter) | CreativeML OpenRAIL-M | Clear (use-based restrictions carry to users) |
 | CLIP-ViT-H-14-laion2B-s32B-b79K | LAION / OpenCLIP | MIT | Clear |
