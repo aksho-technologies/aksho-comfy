@@ -9,6 +9,14 @@
 # never the score, and it prints nothing, so no trace of a withheld image is
 # kept anywhere.
 #
+# Dev-only metadata log, off unless the machine sets AKSHO_CONTENT_CHECK_LOG
+# (a file path, or "1" for ComfyUI/user/aksho-content-check.jsonl). Shipped
+# installs and the cloud worker never set it. When on, every scored image adds
+# one JSON line: time, prompt id, node id, verdict, the loli score and the line
+# it was held to, the age-related tag scores, the top tags, size, seeds and the
+# prompt text. Never the image. It exists to tell false positives from real
+# catches; the check itself is unchanged by it.
+#
 # The image preparation is the calibration scorer's (tagger-check.py,
 # 2026-10-07) step for step, so block_at means here what it meant there: the
 # pixels SaveImage would write, a white matte, padded to a square, bicubic to
@@ -21,6 +29,8 @@
 # show Core incomplete on every rig; the worker image carries its own copy here.
 
 import csv
+import datetime
+import json
 import os
 import threading
 
@@ -55,8 +65,50 @@ def _load():
             session = ort.InferenceSession(model, opts, providers=["CPUExecutionProvider"])
             inp = session.get_inputs()[0]
             side = inp.shape[1] if isinstance(inp.shape[1], int) else 448
-            _session = (session, inp.name, side, names.index(TAG))
+            _session = (session, inp.name, side, names.index(TAG), names)
         return _session
+
+
+# --- dev-only metadata log (see the header); nothing below runs unless AKSHO_CONTENT_CHECK_LOG is set
+LOG_ENV = "AKSHO_CONTENT_CHECK_LOG"
+LOG_DEFAULT_NAME = "aksho-content-check.jsonl"
+# tags that bear on how old a body reads, logged whatever their score
+LOG_WATCH = ("loli", "child", "female_child", "toddler", "aged_down", "petite", "flat_chest", "small_breasts",
+             "medium_breasts", "large_breasts", "mature_female", "1girl", "1boy", "solo", "close-up", "from_behind", "pov")
+_log_lock = threading.Lock()
+
+
+def _log_path():
+    value = os.environ.get(LOG_ENV, "").strip()
+    if not value:
+        return None
+    if value.lower() in ("1", "true", "yes", "on"):
+        import folder_paths
+        return os.path.join(folder_paths.get_user_directory(), LOG_DEFAULT_NAME)
+    return value
+
+
+def _graph_facts(prompt):
+    """Seeds and prompt texts from the graph being run (the API-format prompt)."""
+    seeds, texts = [], []
+    for node in (prompt or {}).values():
+        if not isinstance(node, dict):
+            continue
+        inputs = node.get("inputs", {})
+        if "seed" in inputs and isinstance(inputs["seed"], (int, float)):
+            seeds.append(int(inputs["seed"]))
+        if node.get("class_type") == "CLIPTextEncode" and isinstance(inputs.get("text"), str):
+            texts.append(inputs["text"][:6000])
+    return seeds, texts
+
+
+def _log(path, record):
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with _log_lock, open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception as error:  # the log must never change the check's outcome
+        print(f"[AKSHO CONTENT CHECK] Dev log write failed: {error}")
 
 
 def _prepare(pixels, side):
@@ -79,21 +131,48 @@ class AkshoContentCheck:
             "required": {
                 "images": ("IMAGE",),
                 "block_at": ("FLOAT", {"min": 0.0, "max": 1.0, "step": 0.001}),
-            }
+            },
+            # graph and node id, read only by the dev-only log
+            "hidden": {"prompt": "PROMPT", "unique_id": "UNIQUE_ID"},
         }
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "check"
     CATEGORY = "Aksho"
 
-    def check(self, images, block_at):
-        session, input_name, side, index = _load()
+    def check(self, images, block_at, prompt=None, unique_id=None):
+        # The line is pinned here, not trusted from the graph: whoever edits a
+        # graph can ask for a stricter line, never a looser one. 0.5 is the app's
+        # PICTURIZE_CHECK_BLOCK_AT. Written so a NaN lands on the pin too
+        # (min() would hand NaN back, and no score is >= NaN).
+        block_at = float(block_at) if float(block_at) <= 0.5 else 0.5
+        session, input_name, side, index, names = _load()
+        log_path = _log_path()
         withheld = False
-        for image in images:
+        for position, image in enumerate(images):
             # The exact bytes SaveImage would write.
             pixels = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             batch = _prepare(pixels, side)[None, ...]
-            score = float(session.run(None, {input_name: batch})[0][0][index])
+            probs = session.run(None, {input_name: batch})[0][0]
+            score = float(probs[index])
+            if log_path:
+                seeds, texts = _graph_facts(prompt)
+                try:
+                    from server import PromptServer
+                    prompt_id = getattr(PromptServer.instance, "last_prompt_id", None)
+                except Exception:
+                    prompt_id = None
+                top = sorted(((names[i], float(p)) for i, p in enumerate(probs) if p >= 0.35), key=lambda item: -item[1])[:30]
+                _log(log_path, {
+                    "time": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+                    "prompt_id": prompt_id, "node": unique_id, "image": position,
+                    "verdict": "withheld" if score >= block_at else "passed",
+                    "score": round(score, 4), "block_at": block_at,
+                    "width": int(pixels.shape[1]), "height": int(pixels.shape[0]),
+                    "watch": {t: round(float(probs[names.index(t)]), 4) for t in LOG_WATCH if t in names},
+                    "top": [[n, round(p, 3)] for n, p in top],
+                    "seeds": seeds, "texts": texts,
+                })
             if score >= block_at:
                 withheld = True
                 break

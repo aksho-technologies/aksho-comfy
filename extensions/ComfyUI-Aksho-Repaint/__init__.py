@@ -6,11 +6,14 @@
 #                       to fine at 1/8, 1/4, 1/2 and full size, plus grain quilted from the ring around the zone.
 #                       Nothing inside the zone comes from what was there, so no trace of the old shape survives.
 #                       Pixels under `keep` give no value and take none.
-#   AkshoSeamlessPaste  pastes a repaint back into the picture: lo(base, 6) + (lo(new, 2) - lo(new, 6)) + hp(new) * gain
-#                       inside the drawn mask, feathered over `feather` px outside it. The broad colour comes from
-#                       `base` (the picture itself, or its harmonic fill), so it cannot step at the edge; the repaint
-#                       keeps its form and detail; `gain` matches its grain to the picture's own around the mask.
-#                       Outside the feather every pixel is the destination's, exactly. `keep` is never written.
+#   AkshoSeamlessPaste  pastes a repaint back into the picture: lo(new, 2) + hp(new) * gain inside the drawn mask,
+#                       feathered over `feather` px outside it; `gain` matches its grain to the picture's own around
+#                       the mask. `tone_match` brings its lightness to `base`'s (the picture itself) where both show
+#                       the same material, and carries that light into the rest, so a thing the repaint moved or
+#                       removed never votes its old light back in (2026-11-16, G2 note 6). Outside the feather every
+#                       pixel is the destination's, exactly. `keep` is never written: its core (eroded 1 px) stays
+#                       the picture's exactly, and the repaint fades into it over about 8 px, so a tone step at the
+#                       keep's edge spreads instead of reading as a line (2026-11-16, G2 note 5).
 #
 # All pixel sizes are the picture's own. Images are ComfyUI IMAGE tensors (B, H, W, C, 0-1), masks MASK (B, H, W).
 
@@ -64,6 +67,50 @@ def _distance_outside(m, limit):
 def _grow_cross(m):
     p = F.pad(m, (1, 1, 1, 1))
     return torch.maximum(torch.maximum(p[..., :-2, 1:-1], p[..., 2:, 1:-1]), torch.maximum(p[..., 1:-1, :-2], p[..., 1:-1, 2:]))
+
+
+def _lab(rgb):
+    """sRGB (N, 3, H, W), 0-1, to CIE Lab (D65): L 0-100."""
+    lin = torch.where(rgb <= 0.04045, rgb / 12.92, ((rgb.clamp_min(0) + 0.055) / 1.055) ** 2.4)
+    r, g, b = lin[:, 0:1], lin[:, 1:2], lin[:, 2:3]
+    x = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047
+    y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+    z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883
+    def f(t):
+        return torch.where(t > 216 / 24389, t.clamp_min(1e-12) ** (1 / 3), (24389 / 27 * t + 16) / 116)
+    fx, fy, fz = f(x), f(y), f(z)
+    return torch.cat([116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)], 1)
+
+
+def _rgb(lab):
+    """CIE Lab (D65) back to sRGB (N, 3, H, W), 0-1."""
+    fy = (lab[:, 0:1] + 16) / 116
+    fx, fz = fy + lab[:, 1:2] / 500, fy - lab[:, 2:3] / 200
+    def finv(t):
+        return torch.where(t ** 3 > 216 / 24389, t ** 3, (116 * t - 16) / (24389 / 27))
+    x, y, z = finv(fx) * 0.95047, finv(fy), finv(fz) * 1.08883
+    lin = torch.cat([
+        3.2404542 * x - 1.5371385 * y - 0.4985314 * z,
+        -0.9692660 * x + 1.8760108 * y + 0.0415560 * z,
+        0.0556434 * x - 0.2040259 * y + 1.0572252 * z,
+    ], 1).clamp(0, 1)
+    return torch.where(lin <= 0.0031308, 12.92 * lin, 1.055 * lin.clamp_min(1e-12) ** (1 / 2.4) - 0.055)
+
+
+def _agreed_light(orig, new, region):
+    """The L offset that brings the repaint's lightness to the picture's (G2 note 6, 2026-11-16). Only pixels in `region`
+    where both show the same material (a*, b* within 4) vote; each votes the picture's smoothed L minus the repaint's.
+    The votes spread to their neighbours by normalized convolution (10 px) and fade to nothing where none voted nearby,
+    so a part the repaint drew anew keeps its own light: a ratio carried 40 px from the mask's edge blew a relit face
+    out to L 57 from 25. A thing the repaint moved or removed has another colour, so it never votes its old light back
+    in; the plain base blur did, and left the old shape as a dark or light ghost."""
+    agree = (region & ((orig[:, 1:2] - new[:, 1:2]).abs() < 4) & ((orig[:, 2:3] - new[:, 2:3]).abs() < 4)
+             & (orig[:, 0:1] > 2) & (new[:, 0:1] > 2))
+    a = agree.float()
+    vote = torch.where(agree, _blur(orig[:, 0:1], 3.0) - _blur(new[:, 0:1], 3.0), torch.zeros_like(a))
+    den = _blur(a, 10.0)
+    offset = _blur(vote * a, 10.0) / den.clamp_min(1e-6) * (den / 0.05).clamp(0, 1)
+    return offset.clamp(-25, 25)
 
 
 def _mask_at(mask, b, h, w):
@@ -162,12 +209,17 @@ def seamless_paste(dest, src, base, drawn, walls, x, y, feather, tone_match):
         return dest
     # Round the drawn shape (corners and steps show as seams), keeping thin parts it would otherwise lose.
     rounded = torch.maximum((_blur(m, 3.0) > 0.5).float(), m)
-    # Weight: 1 on the drawn mask, falling smoothly to 0 at `feather` px outside it; 0 on the walls (1 px soft edge).
+    # Weight: 1 on the drawn mask, falling smoothly to 0 at `feather` px outside it; 0 on the walls. The walls' core
+    # (eroded 1 px) stays the picture's exactly; the repaint fades into it over about 8 px (a 4 px blur, doubled), so a
+    # tone step at the keep's edge spreads out instead of reading as a line (G2 note 5, 2026-11-16: the row-to-row jump
+    # there went from 1.7 L to 0.4).
     feather = max(1, int(feather))
     d = _distance_outside(rounded, feather)
     s = (1 - d / feather).clamp(0, 1)
-    weight = s * s * (3 - 2 * s) * (1 - torch.maximum(wl, _blur(wl, 1.0).clamp(0, 1)))
-    lo2, lo6 = _blur(new, 2.0), _blur(new, 6.0)
+    walls_core = 1 - _grow(1 - wl, 1)
+    protect = torch.maximum(walls_core, (_blur(walls_core, 4.0) * 2).clamp(0, 1))
+    weight = s * s * (3 - 2 * s) * (1 - protect)
+    lo2 = _blur(new, 2.0)
     hp = new - lo2
     # The repaint's grain matched to the picture's own just outside the mask.
     ring = (d > 3) & (d <= feather + 3) & (wl < 0.5)
@@ -180,9 +232,13 @@ def seamless_paste(dest, src, base, drawn, walls, x, y, feather, tone_match):
         num = hp_orig[:, :, ring[0, 0]].std()
         den = hp[:, :, core[0, 0]].std().clamp_min(1e-4)
         gain = float((num / den).clamp(0.6, 1.4))
-    toned = _blur(b, 6.0) + (lo2 - lo6) + hp * gain
-    untoned = lo2 + hp * gain
-    matched = toned * float(tone_match) + untoned * (1 - float(tone_match))
+    matched = lo2 + hp * gain
+    if float(tone_match) > 0:
+        # The repaint's lightness brought to the picture's where both agree, as an offset on L: the repaint's own
+        # texture and shading ride along unscaled (a gain amplified them into a mottle).
+        nl = _lab(matched.clamp(0, 1))
+        nl[:, 0:1] = (nl[:, 0:1] + _agreed_light(_lab(b), nl, (s > 0.01) & (wl < 0.5)) * float(tone_match)).clamp(0, 100)
+        matched = _rgb(nl)
     out = dest.clone()
     out[..., y0:y1, x0:x1] = orig * (1 - weight) + matched * weight
     return out.clamp(0, 1)
