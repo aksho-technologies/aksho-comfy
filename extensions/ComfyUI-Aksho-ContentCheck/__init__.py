@@ -11,6 +11,14 @@
 # never the score, and it prints nothing, so no trace of a withheld image is
 # kept anywhere.
 #
+# One file for every copy: the bundle, the Cloud GPU worker image and the dev
+# machine run these same bytes. Both lines are pinned (block_at at most 0.5,
+# child_block_at at most 0.2, a NaN on the pin) unless the process running
+# ComfyUI has AKSHO_CONTENT_CHECK_DEV set to "1". Only the dev machine sets it,
+# in its own launch, so the graph's lines rule there and no Update can undo
+# it. Shipped installs never set it, and the worker's start script unsets it
+# before ComfyUI starts. It is read at every check, not once at import.
+#
 # Dev-only metadata log, off unless the machine sets AKSHO_CONTENT_CHECK_LOG
 # (a file path, or "1" for ComfyUI/user/aksho-content-check.jsonl). Shipped
 # installs and the cloud worker never set it. When on, every scored image adds
@@ -34,7 +42,9 @@ import csv
 import datetime
 import json
 import os
+import sys
 import threading
+import time
 
 import numpy as np
 import onnxruntime as ort
@@ -52,10 +62,55 @@ CHILD_BLOCK_AT = 0.2
 _session = None
 _child_index = None
 _lock = threading.Lock()
+# Timings only (never a score or a verdict): the cloud worker reads this file
+# and reports it with the picture, to find where the check's time goes. Written
+# on Linux only, where /tmp is the system's own; on Windows the same path is a
+# C:\tmp folder of its own, so nothing is written there.
+TIMING_FILE = "/tmp/aksho_content_check.json"
+_timing = {}
+
+
+def _note(**values):
+    _timing.update(values)
+    if not sys.platform.startswith("linux"):
+        return
+    try:
+        with open(TIMING_FILE, "w") as f:
+            json.dump(_timing, f)
+    except OSError:
+        pass
+
+
+def _cpu_budget():
+    """The CPUs this container may actually use. os.cpu_count() reports the
+    whole host (a cloud machine has 100+ cores while the container gets 16 to
+    32), and an ONNX pool that size starves itself (2026-11-06: the check took
+    2 s on a cold worker). The cgroup's quota says what is really there."""
+    try:
+        with open("/sys/fs/cgroup/cpu.max") as f:
+            quota, period = f.read().split()
+        if quota != "max":
+            return max(1, int(int(quota) / int(period)))
+    except (OSError, ValueError):
+        pass
+    # cgroup v1 keeps the quota in two files instead.
+    try:
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us") as f:
+            quota = int(f.read())
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us") as f:
+            period = int(f.read())
+        if quota > 0 and period > 0:
+            return max(1, quota // period)
+    except (OSError, ValueError):
+        pass
+    try:
+        return len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        return os.cpu_count() or 4
 
 
 def _load():
-    """The tagger, its input name, side and the index of TAG, loaded once."""
+    """The tagger, its input name, side, the index of TAG and the tag names, loaded once."""
     global _session, _child_index
     with _lock:
         if _session is None:
@@ -67,9 +122,14 @@ def _load():
                 )
             with open(tags, encoding="utf-8") as f:
                 names = [row["name"] for row in csv.DictReader(f)]
+            started = time.time()
             opts = ort.SessionOptions()
-            opts.intra_op_num_threads = max(1, (os.cpu_count() or 4) - 2)
+            # At most 8: a RunPod container can show the host's 128 cores with
+            # no quota to read, and 126 threads on a 16-vCPU slot took 2.6 s
+            # where 14 take 0.36 (2026-11-06). The tagger gains nothing past 8.
+            opts.intra_op_num_threads = max(1, min(8, _cpu_budget() - 2))
             session = ort.InferenceSession(model, opts, providers=["CPUExecutionProvider"])
+            _note(threads=opts.intra_op_num_threads, budget=_cpu_budget(), host_cpus=os.cpu_count(), load_s=round(time.time() - started, 2))
             inp = session.get_inputs()[0]
             side = inp.shape[1] if isinstance(inp.shape[1], int) else 448
             _child_index = tuple(names.index(t) for t in CHILD_TAGS)
@@ -151,20 +211,30 @@ class AkshoContentCheck:
     CATEGORY = "Aksho"
 
     def check(self, images, block_at, child_block_at=CHILD_BLOCK_AT, prompt=None, unique_id=None):
-        # The line is pinned here, not trusted from the graph: whoever edits a
-        # graph can ask for a stricter line, never a looser one. 0.5 is the app's
-        # PICTURIZE_CHECK_BLOCK_AT. Written so a NaN lands on the pin too
-        # (min() would hand NaN back, and no score is >= NaN).
-        block_at = float(block_at) if float(block_at) <= 0.5 else 0.5
-        child_block_at = float(child_block_at) if float(child_block_at) <= CHILD_BLOCK_AT else CHILD_BLOCK_AT
+        if os.environ.get("AKSHO_CONTENT_CHECK_DEV", "").strip() == "1":
+            # The dev machine's own launch (see the header): the graph's lines rule.
+            block_at, child_block_at = float(block_at), float(child_block_at)
+        else:
+            # The line is pinned here, not trusted from the graph: whoever edits a
+            # graph can ask for a stricter line, never a looser one. 0.5 is the app's
+            # PICTURIZE_CHECK_BLOCK_AT. Written so a NaN lands on the pin too
+            # (min() would hand NaN back, and no score is >= NaN).
+            block_at = float(block_at) if float(block_at) <= 0.5 else 0.5
+            child_block_at = float(child_block_at) if float(child_block_at) <= CHILD_BLOCK_AT else CHILD_BLOCK_AT
+        waited = time.time()
         session, input_name, side, index, names = _load()
         log_path = _log_path()
         withheld = False
+        prepare_s = run_s = 0.0
         for position, image in enumerate(images):
+            started = time.time()
             # The exact bytes SaveImage would write.
             pixels = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             batch = _prepare(pixels, side)[None, ...]
+            prepared = time.time()
             probs = session.run(None, {input_name: batch})[0][0]
+            prepare_s += prepared - started
+            run_s += time.time() - prepared
             score = float(probs[index])
             child = max(float(probs[i]) for i in _child_index)
             reason = "loli" if score >= block_at else ("child" if child >= child_block_at else None)
@@ -189,11 +259,24 @@ class AkshoContentCheck:
             if reason:
                 withheld = True
                 break
+        _note(waited_for_session_s=round(time.time() - waited - prepare_s - run_s, 2), prepare_s=round(prepare_s, 2), run_s=round(run_s, 2))
         if withheld:
             # A batch is withheld whole: one image of it failing is enough.
             return {"ui": {"content_check": ["withheld"]}, "result": (ExecutionBlocker(None),)}
         return {"ui": {"content_check": ["passed"]}, "result": (images,)}
 
+
+def _preload():
+    try:
+        _load()
+    except Exception as err:  # the first check loads it again and reports properly
+        print("[AKSHO CONTENT CHECK] Preload failed:", err)
+
+
+# The tagger loads while ComfyUI is still starting, not inside the first
+# picture: a cold worker otherwise paid for it mid-picture. Scoring is
+# unchanged; the same session simply exists sooner.
+threading.Thread(target=_preload, daemon=True).start()
 
 NODE_CLASS_MAPPINGS = {"AkshoContentCheck": AkshoContentCheck}
 NODE_DISPLAY_NAME_MAPPINGS = {"AkshoContentCheck": "Aksho Content Check"}
