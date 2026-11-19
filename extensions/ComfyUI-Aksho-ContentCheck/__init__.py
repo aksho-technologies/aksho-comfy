@@ -1,6 +1,8 @@
 # Aksho Content Check: the Picturize image check. Every finished Picturize
 # image is scored with the WD v3 ViT tagger (SmilingWolf/wd-vit-tagger-v3) and
-# withheld when its `loli` score reaches the line the app sends as block_at.
+# withheld when its `loli` score reaches the line the app sends as block_at,
+# or when its `child` or `aged_down` score reaches the second line,
+# child_block_at (0.2, CEO 2026-11-19).
 #
 # A withheld image never reaches SaveImage. The node hands SaveImage ComfyUI's
 # own ExecutionBlocker, which stops it silently: nothing is written to disk,
@@ -42,14 +44,19 @@ from comfy_execution.graph_utils import ExecutionBlocker
 
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model")
 TAG = "loli"
+# The second line's tags, held to child_block_at: either one reaching it withholds.
+CHILD_TAGS = ("child", "aged_down")
+# The app's PICTURIZE_CHECK_CHILD_BLOCK_AT; a graph can ask for stricter, never looser.
+CHILD_BLOCK_AT = 0.2
 
 _session = None
+_child_index = None
 _lock = threading.Lock()
 
 
 def _load():
     """The tagger, its input name, side and the index of TAG, loaded once."""
-    global _session
+    global _session, _child_index
     with _lock:
         if _session is None:
             model = os.path.join(MODEL_DIR, "model.onnx")
@@ -65,6 +72,7 @@ def _load():
             session = ort.InferenceSession(model, opts, providers=["CPUExecutionProvider"])
             inp = session.get_inputs()[0]
             side = inp.shape[1] if isinstance(inp.shape[1], int) else 448
+            _child_index = tuple(names.index(t) for t in CHILD_TAGS)
             _session = (session, inp.name, side, names.index(TAG), names)
         return _session
 
@@ -132,6 +140,8 @@ class AkshoContentCheck:
                 "images": ("IMAGE",),
                 "block_at": ("FLOAT", {"min": 0.0, "max": 1.0, "step": 0.001}),
             },
+            # Optional, so a graph from an older app still gets the node's own line.
+            "optional": {"child_block_at": ("FLOAT", {"default": CHILD_BLOCK_AT, "min": 0.0, "max": 1.0, "step": 0.001})},
             # graph and node id, read only by the dev-only log
             "hidden": {"prompt": "PROMPT", "unique_id": "UNIQUE_ID"},
         }
@@ -140,12 +150,13 @@ class AkshoContentCheck:
     FUNCTION = "check"
     CATEGORY = "Aksho"
 
-    def check(self, images, block_at, prompt=None, unique_id=None):
+    def check(self, images, block_at, child_block_at=CHILD_BLOCK_AT, prompt=None, unique_id=None):
         # The line is pinned here, not trusted from the graph: whoever edits a
         # graph can ask for a stricter line, never a looser one. 0.5 is the app's
         # PICTURIZE_CHECK_BLOCK_AT. Written so a NaN lands on the pin too
         # (min() would hand NaN back, and no score is >= NaN).
         block_at = float(block_at) if float(block_at) <= 0.5 else 0.5
+        child_block_at = float(child_block_at) if float(child_block_at) <= CHILD_BLOCK_AT else CHILD_BLOCK_AT
         session, input_name, side, index, names = _load()
         log_path = _log_path()
         withheld = False
@@ -155,6 +166,8 @@ class AkshoContentCheck:
             batch = _prepare(pixels, side)[None, ...]
             probs = session.run(None, {input_name: batch})[0][0]
             score = float(probs[index])
+            child = max(float(probs[i]) for i in _child_index)
+            reason = "loli" if score >= block_at else ("child" if child >= child_block_at else None)
             if log_path:
                 seeds, texts = _graph_facts(prompt)
                 try:
@@ -166,14 +179,14 @@ class AkshoContentCheck:
                 _log(log_path, {
                     "time": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
                     "prompt_id": prompt_id, "node": unique_id, "image": position,
-                    "verdict": "withheld" if score >= block_at else "passed",
-                    "score": round(score, 4), "block_at": block_at,
+                    "verdict": "withheld" if reason else "passed", "reason": reason,
+                    "score": round(score, 4), "block_at": block_at, "child_block_at": child_block_at,
                     "width": int(pixels.shape[1]), "height": int(pixels.shape[0]),
                     "watch": {t: round(float(probs[names.index(t)]), 4) for t in LOG_WATCH if t in names},
                     "top": [[n, round(p, 3)] for n, p in top],
                     "seeds": seeds, "texts": texts,
                 })
-            if score >= block_at:
+            if reason:
                 withheld = True
                 break
         if withheld:
