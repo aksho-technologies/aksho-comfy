@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.11.15-1",
+  "bundleVersion": "2026.11.19-1",
   "installerVersion": "1.2.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -227,8 +227,8 @@
       "kind": "archive-extract",
       "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-ContentCheck.zip",
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-ContentCheck",
-      "sha256": "d9e523bf13dc5b2645326d0397b3d13ec7dd51765612ab260c5c5df943e222f2",
-      "sizeBytes": 2497,
+      "sha256": "be65ddb1763813b02aa957f081c511d854d68e4d9ec0b1cd1fd3cb7076572491",
+      "sizeBytes": 5710,
       "postInstall": {
         "pipRequirements": "requirements.txt"
       }
@@ -238,8 +238,8 @@
       "kind": "archive-extract",
       "url": "https://dl.akshoai.com/extensions/ComfyUI-Aksho-Repaint.zip",
       "targetPath": "ComfyUI/custom_nodes/ComfyUI-Aksho-Repaint",
-      "sha256": "d73c7256e5f6067d4d5d8eca1d1930fe647eb221944bf695ce6993d0a1d173dc",
-      "sizeBytes": 4399
+      "sha256": "430ab8ab8f913d83bdf503643db031d2517574b39bb6f16b81a59b40673ae112",
+      "sizeBytes": 5730
     },
     {
       "id": "model-wd-vit-tagger-v3",
