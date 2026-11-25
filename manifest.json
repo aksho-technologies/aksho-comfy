@@ -1,5 +1,5 @@
 {
-  "bundleVersion": "2026.11.19-1",
+  "bundleVersion": "2026.11.24-1",
   "installerVersion": "1.2.0",
   "installerUrl": "https://dl.akshoai.com/installer/install.ps1",
   "minDiskSpaceGB": 15,
@@ -38,6 +38,19 @@
       "components": [
         "model-moss-image-sft-int8",
         "model-lora-moss-turbo"
+      ]
+    },
+    {
+      "id": "moss-image-lite-v2",
+      "label": "All in One Lite v2",
+      "description": "MOSS Image Lite v2: the same 8 GB-sized model with Turbo built in, tuned for richer rooms and hands, plus the fingering LoRA that stays dormant until a scene needs it. Runs on 8 GB cards and Cloud GPU rigs. PornMaster Moss by iamddtla, Civitai. Fingering LoRA by hamstornado, Civitai.",
+      "tier": "base",
+      "worksWith": [
+        "moss-lite"
+      ],
+      "components": [
+        "model-moss-image-lite-v2",
+        "model-lora-moss-fingering"
       ]
     },
     {
@@ -484,6 +497,22 @@
       "targetPath": "ComfyUI/models/loras/moss_image_sft_pose_control_lora.safetensors",
       "sha256": "2063c9bff0563d256cadf4bd02c185a2622aa2746ca60e1fc2daa40457d9c732",
       "sizeBytes": 290254336
+    },
+    {
+      "id": "model-moss-image-lite-v2",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/PornMaster_Moss_SFT_Turbo_V2_int8_convrot.safetensors",
+      "targetPath": "ComfyUI/models/diffusion_models/PornMaster_Moss_SFT_Turbo_V2_int8_convrot.safetensors",
+      "sha256": "df43be652345d8fd2917aa025341c660dd9ea27dec60175d02ed81668d531a81",
+      "sizeBytes": 5413723432
+    },
+    {
+      "id": "model-lora-moss-fingering",
+      "kind": "file",
+      "url": "https://dl.akshoai.com/models/moss-image/mossBaseFingering_v1.safetensors",
+      "targetPath": "ComfyUI/models/loras/mossBaseFingering_v1.safetensors",
+      "sha256": "b97964be80aed59ba2bc0b2518f68c17a2abb96b427d022a1d44379400b6473f",
+      "sizeBytes": 145158600
     }
   ]
 }
