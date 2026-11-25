@@ -34,10 +34,11 @@ Each row is one tick box in the installer.
 | Realistic | | A Krea2 checkpoint. Coming soon |
 | All in One | 9.5 GB | MOSS Image, one model for any style (realistic, anime, painterly); for 24 GB cards |
 | All in One Lite | 5.0 GB | The same model made smaller to run on 8 GB cards |
+| All in One Lite v2 | 5.6 GB | Lite v2: Turbo built in, with the fingering LoRA. Also for 8 GB cards; uses MOSS support Lite. PornMaster Moss by [iamddtla](https://civitai.com/models/3008033?modelVersionId=3474407), fingering LoRA by [hamstornado](https://civitai.com/models/3057259?modelVersionId=3478152), both on Civitai |
 | **Model support** | | |
 | Illustrious support | 3.8 GB | Image reference so a character's identity carries across pictures, face and hand cleanup, and the 4x-AnimeSharp upscaler |
 | MOSS support | 18.2 GB | Text encoder and VAE for All in One |
-| MOSS support Lite | 7.1 GB | Text encoder and VAE for All in One Lite |
+| MOSS support Lite | 7.1 GB | Text encoder and VAE for All in One Lite and Lite v2 |
 | Anima support | 1.4 GB | Text encoder and VAE for Anima checkpoints |
 | Z-Image support | 5.6 GB | Text encoder and VAE for Z-Image checkpoints |
 | Krea2 support | 5.1 GB | Text encoder and VAE for Krea2 checkpoints |
